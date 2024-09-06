@@ -1,4 +1,3 @@
-import http from 'http';
 import express from 'express';
 import bodyParser from 'body-parser';
 import cors from 'cors';
@@ -8,6 +7,8 @@ import apiConfig from '../config/api.json';
 import config from '../config/config';
 import _ from 'lodash';
 import database from '../database/database';
+import https from 'https';
+import utils from '../core/utils';
 
 
 class Server {
@@ -89,17 +90,28 @@ class Server {
             });
 
             // starting the server
-            this.httpServer = http.createServer(app);
+            return utils.loadNodeKeyAndCertificate()
+                        .then(({
+                                   certificate_private_key_pem: certificatePrivateKeyPem,
+                                   certificate_pem            : certificatePem
+                               }) => {
+                            // starting the server
+                            this.httpsServer = https.createServer({
+                                key      : certificatePrivateKeyPem,
+                                cert     : certificatePem,
+                                ecdhCurve: 'prime256v1'
+                            }, app);
 
-            return new Promise((resolve, reject) => {
-                this.httpServer.listen(config.NODE_PORT_API, config.NODE_BIND_IP, () => {
-                    console.log(`[api] listening on port ${config.NODE_PORT_API}`);
-                    resolve();
-                }).on('error', err => {
-                    console.log(`[api] error binding on port ${config.NODE_PORT_API}`);
-                    reject(err);
-                });
-            });
+                            return new Promise((resolve, reject) => {
+                                this.httpsServer.listen(config.NODE_PORT_API, config.NODE_BIND_IP, () => {
+                                    console.log(`[api] listening on port ${config.NODE_PORT_API}`);
+                                    resolve();
+                                }).on('error', err => {
+                                    console.log(`[api] error binding on port ${config.NODE_PORT_API}`);
+                                    reject(err);
+                                });
+                            });
+                        });
         });
     }
 

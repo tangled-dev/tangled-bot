@@ -35,6 +35,10 @@ export const NODE_PORT_API    = 16666;
 export const EXCHANGE_API_ENDPOINT = get_const_value('EXCHANGE_API_ENDPOINT');
 export const DATABASE_CONNECTION   = {};
 let DATA_BASE_DIR                  = './millix-tangled';
+export const NODE_KEY_PATH             = DATA_BASE_DIR + '/node.json';
+export const NODE_CERTIFICATE_KEY_PATH = DATA_BASE_DIR + '/node_certificate_key.pem';
+export const NODE_CERTIFICATE_PATH     = DATA_BASE_DIR + '/node_certificate.pem';
+
 if (DATABASE_ENGINE === 'sqlite') {
     DATABASE_CONNECTION.FOLDER               = DATA_BASE_DIR + '/';
     DATABASE_CONNECTION.FILENAME_TANGLED_BOT = 'tangled-bot.sqlite';
@@ -45,8 +49,11 @@ export default {
     NAME,
     DEBUG,
     VERSION,
+    NODE_KEY_PATH,
     DATABASE_ENGINE,
     DATABASE_CONNECTION,
+    NODE_CERTIFICATE_PATH,
+    NODE_CERTIFICATE_KEY_PATH,
     EXCHANGE_API_ENDPOINT,
     DEBUG_LOG_FILTER,
     NODE_HOST_FORCE,

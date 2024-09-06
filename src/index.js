@@ -23,6 +23,9 @@ const dataFolder = argv.dataFolder ?
 
 if (dataFolder) {
     config.DATABASE_CONNECTION.FOLDER = dataFolder;
+    config.NODE_KEY_PATH              = path.join(dataFolder, 'node.json');
+    config.NODE_CERTIFICATE_KEY_PATH  = path.join(dataFolder, 'node_certificate_key.pem');
+    config.NODE_CERTIFICATE_PATH      = path.join(dataFolder, 'node_certificate.pem');
 }
 
 if (pidFile && !path.isAbsolute(pidFile)) {
