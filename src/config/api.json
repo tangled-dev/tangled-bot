@@ -1,0 +1,57 @@
+{
+  "endpoint_list": [
+    {
+      "id": "0QJZ31dutPTSexxZ",
+      "name": "api_version",
+      "description": "returns the api version",
+      "method": "GET",
+      "version_released": "1.0.0",
+      "permission": "{\"require_identity\": false, \"private\": false}",
+      "enable": true
+    },
+    {
+      "id": "G53BNuerqTA7LSuF",
+      "name": "list_strategy",
+      "description": "returns the list of strategies",
+      "method": "GET",
+      "version_released": "1.0.0",
+      "permission": "{\"require_identity\": false, \"private\": false}",
+      "enable": true
+    },
+    {
+      "id": "Dm4LbtkrxBbdXwKw",
+      "name": "upsert_strategy",
+      "description": "insert or update strategy by id",
+      "method": "GET",
+      "version_released": "1.0.0",
+      "permission": "{\"require_identity\": false, \"private\": false}",
+      "enable": true
+    },{
+      "id": "krSnkcU4DLqKDG3x",
+      "name": "get_tangled_exchange_api_key",
+      "description": "returns tangled exchange api key if configured",
+      "method": "GET",
+      "version_released": "1.0.0",
+      "permission": "{\"require_identity\": false, \"private\": false}",
+      "enable": true
+    },
+    {
+      "id": "zdLrGUDCxXZLSeBz",
+      "name": "set_tangled_exchange_api_key",
+      "description": "configures tangled exchange api key",
+      "method": "GET",
+      "version_released": "1.0.0",
+      "permission": "{\"require_identity\": false, \"private\": false}",
+      "enable": true
+    },
+    {
+      "id": "QBXWsEGSGthDhsLn",
+      "name": "remove_tangled_exchange_api_key",
+      "description": "deletes tangled exchange api key",
+      "method": "GET",
+      "version_released": "1.0.0",
+      "permission": "{\"require_identity\": false, \"private\": false}",
+      "enable": true
+    }
+  ]
+}
