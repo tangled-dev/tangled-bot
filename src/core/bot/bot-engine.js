@@ -46,7 +46,7 @@ class BotEngine {
         let waitTime;
         let botStrategy;
         if (strategy.strategy_type === 'strategy-constant') {
-            waitTime    = JSON.parse(strategy.extra_config).frequency;
+            waitTime    = JSON.parse(strategy.extra_config).time_frequency;
             botStrategy = new BotStrategyConstant(strategy, BotEngine.MLX_USDC, BotEngine.MLX_USDC_GUID);
         }
         else if (strategy.strategy_type === 'strategy-price-change') {
@@ -58,7 +58,7 @@ class BotEngine {
         else {
             return;
         }
-        task.scheduleTask(taskId, async() => botStrategy.run(this.orderBook), waitTime, true);
+        task.scheduleTask(taskId, async() => botStrategy.run(this.orderBook), waitTime * 1000, true);
     }
 
     unRegisterStrategyTask(strategy) {

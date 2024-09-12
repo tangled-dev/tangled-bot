@@ -23,13 +23,14 @@ class _Dm4LbtkrxBbdXwKw extends Endpoint {
                   p1 : strategy_description,
                   p2 : strategy_type,
                   p3 : order_type,
-                  p4 : amount,
-                  p5 : price_min,
-                  p6 : price_max,
-                  p7 : amount_traded,
-                  p8 : total_budget,
-                  p9 : extra_config,
-                  p10: status
+                  p4 : order_ttl,
+                  p5 : amount,
+                  p6 : price_min,
+                  p7 : price_max,
+                  p8 : amount_traded,
+                  p9 : total_budget,
+                  p10: extra_config,
+                  p11: status
               } = req.method === 'POST' ? req.body : req.query;
 
         const strategyRepository = database.getRepository('strategy');
@@ -38,6 +39,7 @@ class _Dm4LbtkrxBbdXwKw extends Endpoint {
             strategy_description,
             strategy_type,
             order_type,
+            order_ttl,
             amount,
             price_min,
             price_max,

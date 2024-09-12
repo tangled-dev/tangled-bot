@@ -35,17 +35,18 @@ export default class Strategy {
         return new Promise((resolve, reject) => {
             const strategyID = strategy.strategy_id === undefined ? Database.generateID(16) : strategy.strategy_id;
             this.database.run(`INSERT INTO strategy (strategy_id, strategy_description,
-                                                     strategy_type, order_type,
+                                                     strategy_type, order_type, order_ttl,
                                                      amount,
                                                      price_min, price_max,
                                                      amount_traded,
                                                      total_budget, extra_config,
                                                      status)
-                               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, [
+                               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, [
                 strategyID,
                 strategy.strategy_description,
                 strategy.strategy_type,
                 strategy.order_type,
+                strategy.order_ttl,
                 strategy.amount,
                 strategy.price_min,
                 strategy.price_max,
@@ -64,6 +65,7 @@ export default class Strategy {
                             'strategy_description',
                             'strategy_type',
                             'order_type',
+                            'order_ttl',
                             'amount',
                             'price_min',
                             'price_max',
@@ -94,6 +96,7 @@ export default class Strategy {
                 'strategy_description',
                 'strategy_type',
                 'order_type',
+                'order_ttl',
                 'amount',
                 'price_min',
                 'price_max',

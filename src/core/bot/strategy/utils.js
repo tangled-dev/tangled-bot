@@ -17,3 +17,33 @@ export const getOrderAmountAndPrice = (prices, volumes, amount, priceMin, priceM
         size: Math.min(aggVolume, amount)
     };
 };
+
+export const getOrderAmountAndMarginPrice = (askPrice, bidPrice, amount, priceMin, priceMax, isBid) => {
+    const delta = 0.000000001;
+    let price   = parseFloat(isBid ? (bidPrice + delta).toFixed(9) : (askPrice - delta).toFixed(9));
+    if (isBid) {
+        if (price >= askPrice) {
+            price = bidPrice;
+        }
+    }
+    else {
+        if (price <= bidPrice) {
+            price = askPrice;
+        }
+    }
+    return {
+        price,
+        size: amount
+    };
+};
+
+export const getActionFromOrderType = (orderType) => {
+    switch (orderType) {
+        case 'buy':
+            return 'bid';
+        case 'sell':
+            return 'ask';
+        default:
+            return orderType;
+    }
+};

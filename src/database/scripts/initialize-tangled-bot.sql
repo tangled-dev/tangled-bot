@@ -28,6 +28,7 @@ CREATE TABLE strategy
     strategy_description CHAR(255) NOT NULL CHECK (length(strategy_description) <= 255),
     strategy_type        CHAR(255) NOT NULL CHECK (length(strategy_type) <= 255),
     order_type           CHAR(3)   NOT NULL CHECK (length(order_type) <= 4),
+    order_ttl            INT NOT NULL DEFAULT 60,
     amount               INT       NOT NULL CHECK (TYPEOF(amount) = 'integer' AND amount > 0),
     price_min            REAL NULL,
     price_max            REAL NULL,

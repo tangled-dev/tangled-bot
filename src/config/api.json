@@ -26,6 +26,15 @@
       "version_released": "1.0.0",
       "permission": "{\"require_identity\": false, \"private\": false}",
       "enable": true
+    },
+    {
+      "id": "nh8Ck5RTxgxYgStT",
+      "name": "import_strategies",
+      "description": "import strategies",
+      "method": "POST",
+      "version_released": "1.0.0",
+      "permission": "{\"require_identity\": false, \"private\": false}",
+      "enable": true
     },{
       "id": "krSnkcU4DLqKDG3x",
       "name": "get_tangled_exchange_api_key",

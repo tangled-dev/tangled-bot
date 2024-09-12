@@ -1,6 +1,6 @@
 import TangledExchangeApi from '../../../api/tangled-exchange-api';
 import database from '../../../database/database';
-import {getOrderAmountAndPrice} from './utils';
+import {getActionFromOrderType, getOrderAmountAndMarginPrice, getOrderAmountAndPrice} from './utils';
 
 
 export class BotStrategyPriceChange {
@@ -24,7 +24,8 @@ export class BotStrategyPriceChange {
         if (!orderBook || !this.lastPrice) {
             return;
         }
-        const action = this.strategy.order_type === 'buy' ? 'bid' : 'ask';
+        const orderType = this.strategy.order_type;
+        const action = getActionFromOrderType(orderType);
         const newLastPrice = action === 'bid' ? orderBook.askPrices[0] : orderBook.bidPrices[0];
         const change       = ((newLastPrice - this.lastPrice) / this.lastPrice) * 100;
         this.lastPrice     = newLastPrice;
@@ -35,9 +36,12 @@ export class BotStrategyPriceChange {
 
         let order = {
             action,
-            ...getOrderAmountAndPrice(action === 'bid' ? orderBook.askPrices : orderBook.bidPrices,
-                action === 'bid' ? orderBook.askVolumes : orderBook.bidVolumes,
-                this.strategy.amount, this.strategy.price_min, this.strategy.price_max)
+            ...(orderType === 'bid' || orderType === 'ask') ?
+               getOrderAmountAndMarginPrice(orderBook.askPrices[0], orderBook.bidPrices[0],
+                   this.strategy.amount, this.strategy.price_min, this.strategy.price_max, orderType === 'bid') :
+               getOrderAmountAndPrice(orderType === 'buy' ? orderBook.askPrices : orderBook.bidPrices,
+                   orderType === 'buy' ? orderBook.askVolumes : orderBook.bidVolumes,
+                   this.strategy.amount, this.strategy.price_min, this.strategy.price_max)
         };
 
         const usedBudget = (this.strategy.amount_traded || 0) + order.size;
