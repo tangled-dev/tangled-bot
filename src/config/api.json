@@ -10,6 +10,15 @@
       "enable": true
     },
     {
+      "id": "T72jPyDtqeUgua2z",
+      "name": "get_trading_pair_stats",
+      "description": "returns the statistics for a trading pair",
+      "method": "GET",
+      "version_released": "1.0.0",
+      "permission": "{\"require_identity\": false, \"private\": false}",
+      "enable": true
+    },
+    {
       "id": "G53BNuerqTA7LSuF",
       "name": "list_strategy",
       "description": "returns the list of strategies",

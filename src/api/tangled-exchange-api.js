@@ -52,6 +52,10 @@ class TangledExchangeApi {
         return (await api.get(this._withApiKey(`/api_public.php?endpoint=exchange_get_trade_list&currency_pair_name=${symbol}&timestamp=${timestamp}&limit=${limit}`))).data;
     }
 
+    async getStats(symbol, timeFrame) {
+        return (await api.get(this._withApiKey(`/api_public.php?endpoint=exchange_get_currency_pair_stat&currency_pair_name=${symbol}&time_frame=${timeFrame}`))).data;
+    }
+
     async insertOrder(symbolGUID, order) {
         return (await api.post(this._withApiKey(`/api_public.php?endpoint=exchange_insert_order`), {
             currency_pair_guid: symbolGUID,
