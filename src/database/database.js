@@ -1,5 +1,5 @@
 import config from '../config/config';
-import {API, Config, Normalization, Schema, Strategy} from './repositories/repositories';
+import {API, Config, Normalization, Order, Schema, Strategy} from './repositories/repositories';
 import mutex from '../core/mutex';
 import eventBus from '../core/event-bus';
 import fs from 'fs';
@@ -291,6 +291,7 @@ export class Database {
         this.repositories['api']           = new API(this.database);
         this.repositories['config']        = new Config(this.database);
         this.repositories['strategy']      = new Strategy(this.database);
+        this.repositories['order']         = new Order(this.database);
         return this.repositories['normalization'].load();
     }
 

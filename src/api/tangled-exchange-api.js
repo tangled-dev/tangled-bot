@@ -62,7 +62,10 @@ class TangledExchangeApi {
     }
 
     async cancelOrder(symbol, orderId) {
-        return (await api.post(this._withApiKey(`/api_public.php?endpoint=exchange_cancel_order&currency_pair_name=${symbol}&order_id=${orderId}`))).data;
+        return (await api.post(this._withApiKey(`/api_public.php?endpoint=exchange_cancel_order`), {
+            currency_pair_name: symbol,
+            order_id          : orderId
+        })).data;
     }
 }
 

@@ -5,12 +5,13 @@ import {getActionFromOrderType, getOrderAmountAndMarginPrice, getOrderAmountAndP
 
 export class BotStrategyPriceChange {
 
-    constructor(strategy, symbol, symbolGUID, targetPriceChange) {
+    constructor(strategy, symbol, symbolGUID, targetPriceChange, orderTTL) {
         this.strategy          = strategy;
         this.symbol            = symbol;
         this.symbolGUID        = symbolGUID;
         this.lastPrice         = undefined;
         this.targetPriceChange = targetPriceChange;
+        this.orderTTL          = orderTTL;
     }
 
     setLastPrice(orderBook) {
@@ -24,8 +25,8 @@ export class BotStrategyPriceChange {
         if (!orderBook || !this.lastPrice) {
             return;
         }
-        const orderType = this.strategy.order_type;
-        const action = getActionFromOrderType(orderType);
+        const orderType    = this.strategy.order_type;
+        const action       = getActionFromOrderType(orderType);
         const newLastPrice = action === 'bid' ? orderBook.askPrices[0] : orderBook.bidPrices[0];
         const change       = ((newLastPrice - this.lastPrice) / this.lastPrice) * 100;
         this.lastPrice     = newLastPrice;
@@ -52,11 +53,15 @@ export class BotStrategyPriceChange {
         this.strategy.amount_traded = usedBudget;
 
         // run
+        const orderRepository    = database.getRepository('order');
         const strategyRepository = database.getRepository('strategy');
         return TangledExchangeApi.insertOrder(this.symbolGUID, order)
-                                 .then(order => {
-                                     console.log(order);
-                                     return !order.status;
+                                 .then(mOrder => {
+                                     if (mOrder.status) {
+                                         orderRepository.upsert(mOrder.order_id, order.price, order.size, 0, 'ACTIVE', order.action.toUpperCase(), 'GTC', this.symbol.toUpperCase(), Math.floor(Date.now() / 1000), this.orderTTL)
+                                                        .then(_ => _).catch(_ => _);
+                                     }
+                                     return !mOrder.status;
                                  })
                                  .catch(_ => true)
                                  .then(error => strategyRepository.upsert({

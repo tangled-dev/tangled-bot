@@ -28,7 +28,7 @@ CREATE TABLE strategy
     strategy_description CHAR(255) NOT NULL CHECK (length(strategy_description) <= 255),
     strategy_type        CHAR(255) NOT NULL CHECK (length(strategy_type) <= 255),
     order_type           CHAR(3)   NOT NULL CHECK (length(order_type) <= 4),
-    order_ttl            INT NOT NULL DEFAULT 60,
+    order_ttl            INT       NOT NULL DEFAULT 60,
     amount               INT       NOT NULL CHECK (TYPEOF(amount) = 'integer' AND amount > 0),
     price_min            REAL NULL,
     price_max            REAL NULL,
@@ -41,6 +41,26 @@ CREATE TABLE strategy
     create_date          INT       NOT NULL DEFAULT (CAST(strftime('%s', 'now') AS INTEGER)) CHECK (length(create_date) <= 10 AND TYPEOF(create_date) = 'integer')
 );
 CREATE INDEX idx_strategy_create_date ON strategy (create_date);
+
+CREATE TABLE `order`
+(
+    order_id     CHAR(16) NOT NULL UNIQUE CHECK (length(order_id) <= 16),
+    order_number BIGINT   NOT NULL UNIQUE CHECK (order_number > 0),
+    price        REAL     NOT NULL CHECK (price > 0),
+    order_size   INT      NOT NULL CHECK (order_size > 0),
+    order_filled INT      NOT NULL CHECK (order_filled >= 0),
+    user_cookie  INT NULL,
+    state        CHAR(16) NOT NULL,
+    action       CHAR(8)  NOT NULL,
+    order_type   CHAR(16) NOT NULL,
+    symbol       CHAR(8)  NOT NULL,
+    deals        TEXT NULL,
+    timestamp    INT      NOT NULL,
+    order_ttl    INT      NOT NULL,
+    status       TINYINT  NOT NULL DEFAULT 1 CHECK (length(status) <= 3 AND TYPEOF(status) = 'integer'),
+    create_date  INT      NOT NULL DEFAULT (CAST(strftime('%s', 'now') AS INTEGER)) CHECK (length(create_date) <= 10 AND TYPEOF(create_date) = 'integer')
+);
+CREATE INDEX idx_order_create_date ON `order` (create_date);
 
 CREATE TABLE normalization
 (

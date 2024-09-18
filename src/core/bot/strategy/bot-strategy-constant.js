@@ -5,10 +5,11 @@ import {getActionFromOrderType, getOrderAmountAndMarginPrice, getOrderAmountAndP
 
 export class BotStrategyConstant {
 
-    constructor(strategy, symbol, symbolGUID) {
+    constructor(strategy, symbol, symbolGUID, orderTTL) {
         this.strategy   = strategy;
         this.symbol     = symbol;
         this.symbolGUID = symbolGUID;
+        this.orderTTL   = orderTTL;
     }
 
     run(orderBook) {
@@ -34,11 +35,15 @@ export class BotStrategyConstant {
         this.strategy.amount_traded = usedBudget;
 
         // run
+        const orderRepository    = database.getRepository('order');
         const strategyRepository = database.getRepository('strategy');
         return TangledExchangeApi.insertOrder(this.symbolGUID, order)
-                                 .then(order => {
-                                     console.log(order);
-                                     return !order.status;
+                                 .then(mOrder => {
+                                     if (mOrder.status) {
+                                         orderRepository.upsert(mOrder.order_id, order.price, order.size, 0, 'ACTIVE', order.action.toUpperCase(), 'GTC', this.symbol.toUpperCase(), Math.floor(Date.now() / 1000), this.orderTTL)
+                                                        .then(_ => _).catch(_ => _);
+                                     }
+                                     return !mOrder.status;
                                  })
                                  .catch(_ => true)
                                  .then(error => strategyRepository.upsert({

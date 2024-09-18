@@ -26,7 +26,7 @@
   },
   "dependencies": {
     "@babel/runtime": "^7.18.3",
-    "async": "^3.2.1",
+    "async": "^3.2.6",
     "axios": "^1.7.7",
     "bindings": "^1.5.0",
     "bitcore-lib": "^8.25.47",
