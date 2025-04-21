@@ -40,8 +40,10 @@ export default class Strategy {
                                                      price_min, price_max,
                                                      amount_traded,
                                                      total_budget, extra_config,
+                                                     last_run_timestamp,
+                                                     last_run_status,
                                                      status)
-                               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, [
+                               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, [
                 strategyID,
                 strategy.strategy_description,
                 strategy.strategy_type,
@@ -53,6 +55,8 @@ export default class Strategy {
                 strategy.amount_traded,
                 strategy.total_budget,
                 strategy.extra_config,
+                strategy.last_run_timestamp,
+                strategy.last_run_status,
                 strategy.status === undefined ? 1 : strategy.status
             ], (err) => {
                 if (err) {
@@ -72,6 +76,8 @@ export default class Strategy {
                             'amount_traded',
                             'total_budget',
                             'extra_config',
+                            'last_run_timestamp',
+                            'last_run_status',
                             'status'
                         ]);
                         const {

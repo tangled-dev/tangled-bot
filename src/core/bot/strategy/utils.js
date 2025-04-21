@@ -47,3 +47,23 @@ export const getActionFromOrderType = (orderType) => {
             return orderType;
     }
 };
+
+export const logError = (logger, error) => {
+    if (error.response) {
+        // The server responded with a status code outside the 2xx range
+        logger.error('Error code:' + error.code);
+        logger.error('Error status:' + error.response.status);
+        logger.error('Error data:' + JSON.stringify(error.response?.data || ''));
+    }
+    else if (error.request) {
+        // No response was received
+        logger.error('Error code:' + error.code);
+        logger.error('No response received');
+    }
+    else {
+        // Other errors
+        logger.error('Error message:' + JSON.stringify(error?.message || ''));
+    }
+    logger.error(error);
+    logger.error(JSON.stringify(error));
+};

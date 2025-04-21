@@ -1,19 +1,17 @@
 import TangledExchangeApi from '../../../api/tangled-exchange-api';
 import database from '../../../database/database';
-import {getActionFromOrderType, getOrderAmountAndMarginPrice, getOrderAmountAndPrice} from './utils';
+import {getActionFromOrderType, getOrderAmountAndMarginPrice, getOrderAmountAndPrice, logError} from './utils';
+import logger from '../../logger';
+import {BotStrategy} from './bot-strategy';
 
 
-export class BotStrategyPriceChange {
+export class BotStrategyPriceChange extends BotStrategy {
 
     constructor(strategy, symbol, symbolGUID, targetPriceChange, orderTTL) {
-        this.strategy          = strategy;
-        this.symbol            = symbol;
-        this.symbolGUID        = symbolGUID;
+        super(strategy, symbol, symbolGUID, orderTTL, 'BotStrategyPriceChange');
         this.lastPrice         = undefined;
         this.targetPriceChange = targetPriceChange;
-        this.orderTTL          = orderTTL;
     }
-
     setLastPrice(orderBook) {
         if (!orderBook) {
             return;
@@ -22,7 +20,19 @@ export class BotStrategyPriceChange {
     }
 
     run(orderBook) {
-        if (!orderBook || !this.lastPrice) {
+
+        if (!this.lastRunTimestamp) {
+            return this.updateStrategyRunTimestamp();
+        }
+        else if (this.lastRunStatus === 1 && this.lastRunTimestamp + this.waitTime > Math.floor(Date.now() / 1000) ) {
+            return;
+        }
+
+        if (!orderBook || !orderBook.askPrices || !orderBook.bidPrices
+            || !orderBook.askVolumes || !orderBook.bidVolumes || !this.lastPrice) {
+            if (this.lastPrice) {
+                logError(this.logger, new Error(`cannot execute: orderbook = ${JSON.stringify(orderBook)}`));
+            }
             return;
         }
         const orderType    = this.strategy.order_type;
@@ -32,7 +42,7 @@ export class BotStrategyPriceChange {
         this.lastPrice     = newLastPrice;
 
         if (this.targetPriceChange > 0 && change < this.targetPriceChange || this.targetPriceChange < 0 && change > this.targetPriceChange) {
-            return;
+            return this.updateStrategyRunTimestamp();
         }
 
         let order = {
@@ -47,7 +57,7 @@ export class BotStrategyPriceChange {
 
         const usedBudget = (this.strategy.amount_traded || 0) + order.size;
         if (!order.price || usedBudget > this.strategy.total_budget) {
-            return;
+            return this.updateStrategyRunTimestamp();
         }
 
         this.strategy.amount_traded = usedBudget;
@@ -61,14 +71,19 @@ export class BotStrategyPriceChange {
                                          orderRepository.upsert(mOrder.order_id, order.price, order.size, 0, 'ACTIVE', order.action.toUpperCase(), 'GTC', this.symbol.toUpperCase(), Math.floor(Date.now() / 1000), this.orderTTL)
                                                         .then(_ => _).catch(_ => _);
                                      }
-                                     return !mOrder.status;
+                                     this.lastRunTimestamp = Math.floor(Date.now() / 1000);
+                                     this.lastRunStatus    = !mOrder.status ? 0 : 1;
                                  })
-                                 .catch(_ => true)
-                                 .then(error => strategyRepository.upsert({
+                                 .catch(e => {
+                                     logError(this.logger, e);
+                                     this.lastRunTimestamp = Math.floor(Date.now() / 1000);
+                                     this.lastRunStatus    = 1;
+                                 })
+                                 .then(() => strategyRepository.upsert({
                                      strategy_id       : this.strategy.strategy_id,
                                      amount_traded     : this.strategy.amount_traded,
-                                     last_run_timestamp: Date.now(),
-                                     last_run_status   : !error ? 1 : 0
+                                     last_run_timestamp: this.lastRunTimestamp,
+                                     last_run_status   : this.lastRunStatus
                                  }).then(_ => _).catch(_ => _));
     }
 }

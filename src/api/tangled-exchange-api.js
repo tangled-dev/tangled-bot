@@ -32,8 +32,8 @@ class TangledExchangeApi {
         if (!this.apiKey) {
             throw Error('tangled_exchange_api_key_not_configured');
         }
-        console.log(`${url}&api_token=${this.apiKey}`);
-        return `${url}&api_token=${this.apiKey}`;
+        console.log(`${url}&idem_api_token=${this.apiKey}`);
+        return `${url}&idem_api_token=${this.apiKey}`;
     }
 
     async getState() {
@@ -69,7 +69,7 @@ class TangledExchangeApi {
         return (await api.post(this._withApiKey(`/api_public.php?endpoint=exchange_cancel_order`), {
             currency_pair_name: symbol,
             order_id          : orderId
-        })).data;
+        }, {timeout: 10000})).data;
     }
 }
 

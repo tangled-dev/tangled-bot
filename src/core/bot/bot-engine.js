@@ -4,6 +4,8 @@ import database from '../../database/database';
 import {BotStrategyConstant} from './strategy/bot-strategy-constant';
 import {BotStrategyPriceChange} from './strategy/bot-strategy-price-change';
 import async from 'async';
+import logger from '../logger';
+import {logError} from './strategy/utils';
 
 
 class BotEngine {
@@ -20,12 +22,12 @@ class BotEngine {
         return TangledExchangeApi.getOrderBook(BotEngine.MLX_USDC)
                                  .then(orderBook => {
                                      this.orderBook = orderBook;
-                                     if (this.onOrderBookCallback.length > 0) {
+                                     if (orderBook && this.onOrderBookCallback.length > 0) {
                                          this.onOrderBookCallback.forEach(callback => callback(orderBook));
                                          this.onOrderBookCallback = [];
                                      }
                                  })
-                                 .catch(e => console.error(e));
+                                 .catch(e => logError(this.logger, e));
     }
 
     initialize() {
@@ -34,6 +36,8 @@ class BotEngine {
         }
         this.initialized       = true;
         this.registeredTasks   = [];
+        this.logger            = logger.getLogger('BotEngine');
+        logError(this.logger, new Error('bot initialized - v0.1'))
         const configRepository = database.getRepository('config');
         configRepository.getConfig('tangled_exchange_api_key')
                         .then(data => this.registerTask(data.value)).catch(() => this.registerTask());
@@ -60,13 +64,18 @@ class BotEngine {
             return;
         }
 
-        waitTime *= 1000;
-
-        if (!waitTime || !Number.isFinite(waitTime) || Number.isNaN(waitTime) || waitTime < 1000) {
+        if (!waitTime || !Number.isFinite(waitTime) || Number.isNaN(waitTime) || waitTime < 1) {
             return;
         }
 
-        task.scheduleTask(taskId, async() => botStrategy.run(this.orderBook), waitTime, true);
+        botStrategy.setWaitTime(waitTime);
+
+        task.scheduleTask(taskId, async() => {
+            if (!this.orderBook) {
+                return;
+            }
+            botStrategy.run(this.orderBook);
+        }, 1000, true);
     }
 
     unRegisterStrategyTask(strategy) {
@@ -91,7 +100,8 @@ class BotEngine {
                                                                     console.log(result);
                                                                     orderRepository.upsert(order.order_number, order.price, order.order_size, order.order_filled, order.state, order.action, order.order_type, order.symbol, order.timestamp, order.order_ttl, 2)
                                                                                    .then(_ => callback()).catch(_ => callback());
-                                                                });
+                                                                })
+                                                                .catch(e => logError(this.logger, e));
                                           }
                                           else {
                                               callback();
@@ -118,10 +128,14 @@ class BotEngine {
     }
 
     stop() {
-        task.removeTask('get_order_book');
-        task.removeTask('expire_orders');
-        for (const taskId of this.registeredTasks) {
-            task.removeTask(taskId);
+        try {
+            task.removeTask('get_order_book');
+            task.removeTask('expire_orders');
+            for (const taskId of this.registeredTasks) {
+                task.removeTask(taskId);
+            }
+        }
+        catch (e) {
         }
         this.initialized = false;
     }

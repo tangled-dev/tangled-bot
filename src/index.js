@@ -59,7 +59,7 @@ const checkPIDFile = () => {
 
     return new Promise((resolve) => {
         if (!fs.existsSync(pidFile)) {
-            fs.writeFile(pidFile, "" + process.pid, () => {
+            fs.writeFile(pidFile, '' + process.pid, () => {
                 resolve();
             });
             return;
@@ -77,13 +77,12 @@ const checkPIDFile = () => {
                 processKilled = true;
                 console.log('zombie process killed, pid:', pid);
             }
-            fs.writeFile(pidFile, "" + process.pid, () => {
+            fs.writeFile(pidFile, '' + process.pid, () => {
                 setTimeout(() => resolve(), processKilled ? 1000 : 0);
             });
         });
     });
 };
 
-logger.log('tangled bot initializing');
-
-checkPIDFile().then(() => service.initialize());
+logger.initialize().then(() => checkPIDFile().then(() => service.initialize()))
+      .then(() => logger.getLogger('main').debug('bot started'));
