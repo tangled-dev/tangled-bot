@@ -1,46 +1,85 @@
 import task from '../task';
-import TangledExchangeApi from '../../api/tangled-exchange-api';
+import ExchangeApi from '../../api/exchange-api';
 import database from '../../database/database';
 import {BotStrategyConstant} from './strategy/bot-strategy-constant';
 import {BotStrategyPriceChange} from './strategy/bot-strategy-price-change';
 import async from 'async';
 import logger from '../logger';
 import {logError} from './strategy/utils';
+import _ from 'lodash';
 
 
 class BotEngine {
 
-    static MLX_USDC      = 'mlx_usdc';
-    static MLX_USDC_GUID = 'ci6Sm2cKL';
+    static MLX_USDC = 'mlx_usdc';
+    static POL_USDC = 'pol_usdc';
+    static ETH_USDC = 'eth_usdc';
+    static BTC_USDC = 'btc_usdc';
+    static XRP_USDC = 'xrp_usdc';
+    static SOL_USDC = 'sol_usdc';
+
+    static SUPPORTED_TRADING_PAIRS_BY_EXCHANGE = {
+        'fiatleak': [
+            BotEngine.MLX_USDC,
+            BotEngine.POL_USDC,
+            BotEngine.ETH_USDC,
+            BotEngine.BTC_USDC,
+            BotEngine.XRP_USDC,
+            BotEngine.SOL_USDC
+        ],
+        'tangled' : [BotEngine.MLX_USDC]
+    };
 
     constructor() {
         this.initialized         = false;
-        this.onOrderBookCallback = [];
+        this.orderBooks          = {};
+        this.onOrderBookCallback = {};
+        this._initializeExchangeSymbolsValues(this.orderBooks, undefined);
+        this._initializeExchangeSymbolsValues(this.onOrderBookCallback, []);
     }
 
-    fetchOrderBookTask() {
-        return TangledExchangeApi.getOrderBook(BotEngine.MLX_USDC)
-                                 .then(orderBook => {
-                                     this.orderBook = orderBook;
-                                     if (orderBook && this.onOrderBookCallback.length > 0) {
-                                         this.onOrderBookCallback.forEach(callback => callback(orderBook));
-                                         this.onOrderBookCallback = [];
-                                     }
-                                 })
-                                 .catch(e => logError(this.logger, e));
+    _initializeExchangeSymbolsValues(ref, value) {
+        _.keys(BotEngine.SUPPORTED_TRADING_PAIRS_BY_EXCHANGE).forEach(exchange => {
+            _.each(BotEngine.SUPPORTED_TRADING_PAIRS_BY_EXCHANGE[exchange], symbol => {
+                if (!ref[exchange]) {
+                    ref[exchange] = {};
+                }
+                if (!ref[exchange][symbol]) {
+                    ref[exchange][symbol] = value;
+                }
+            });
+        });
+    }
+
+    _applyExchangeSymbols(fun) {
+        _.keys(BotEngine.SUPPORTED_TRADING_PAIRS_BY_EXCHANGE).forEach(exchange => {
+            _.each(BotEngine.SUPPORTED_TRADING_PAIRS_BY_EXCHANGE[exchange], symbol => {
+                fun && fun(exchange, symbol);
+            });
+        });
+    }
+
+    fetchOrderBookTask(exchange, symbol) {
+        return ExchangeApi.get(exchange).getOrderBook(symbol)
+                          .then(orderBook => {
+                              this.orderBooks[exchange][symbol] = orderBook;
+                              if (orderBook && this.onOrderBookCallback[exchange][symbol].length > 0) {
+                                  this.onOrderBookCallback[exchange][symbol].forEach(callback => callback(orderBook));
+                                  this.onOrderBookCallback[exchange][symbol] = [];
+                              }
+                          })
+                          .catch(e => logError(this.logger, e));
     }
 
     initialize() {
         if (this.initialized) {
             return;
         }
-        this.initialized       = true;
-        this.registeredTasks   = [];
-        this.logger            = logger.getLogger('BotEngine');
-        logError(this.logger, new Error('bot initialized - v0.1'))
-        const configRepository = database.getRepository('config');
-        configRepository.getConfig('tangled_exchange_api_key')
-                        .then(data => this.registerTask(data.value)).catch(() => this.registerTask());
+        this.initialized     = true;
+        this.registeredTasks = [];
+        this.logger          = logger.getLogger('BotEngine');
+        logError(this.logger, new Error('bot initialized - v0.1'));
+        return this.registerTask();
     }
 
     registerStrategyTask(strategy) {
@@ -52,13 +91,13 @@ class BotEngine {
         let botStrategy;
         if (strategy.strategy_type === 'strategy-constant') {
             waitTime    = JSON.parse(strategy.extra_config).time_frequency;
-            botStrategy = new BotStrategyConstant(strategy, BotEngine.MLX_USDC, BotEngine.MLX_USDC_GUID, strategy.order_ttl);
+            botStrategy = new BotStrategyConstant(strategy, strategy.symbol, strategy.order_ttl);
         }
         else if (strategy.strategy_type === 'strategy-price-change') {
             const extraConfig = JSON.parse(strategy.extra_config);
             waitTime          = extraConfig.time_frame;
-            botStrategy       = new BotStrategyPriceChange(strategy, BotEngine.MLX_USDC, BotEngine.MLX_USDC_GUID, extraConfig.price_change_percentage, strategy.order_ttl);
-            this.onOrderBookCallback.push(orderBook => botStrategy.setLastPrice(orderBook));
+            botStrategy       = new BotStrategyPriceChange(strategy, strategy.symbol, extraConfig.price_change_percentage, strategy.order_ttl);
+            this.onOrderBookCallback[strategy.exchange_id][strategy.symbol].push(orderBook => botStrategy.setLastPrice(orderBook));
         }
         else {
             return;
@@ -71,10 +110,11 @@ class BotEngine {
         botStrategy.setWaitTime(waitTime);
 
         task.scheduleTask(taskId, async() => {
-            if (!this.orderBook) {
+            const orderBook = this.orderBooks[strategy.exchange_id][strategy.symbol];
+            if (!orderBook) {
                 return;
             }
-            botStrategy.run(this.orderBook);
+            botStrategy.run(orderBook);
         }, 1000, true);
     }
 
@@ -91,17 +131,18 @@ class BotEngine {
         const orderRepository = database.getRepository('order');
         return orderRepository.list({status: 1}, 'create_date ASC')
                               .then(orders => {
-                                  const now = Math.floor(Date.now() / 1000);
                                   return new Promise(resolve => {
                                       async.eachSeries(orders, (order, callback) => {
+                                          const now = Math.floor(Date.now() / 1000);
                                           if (order.timestamp + order.order_ttl < now) {
-                                              TangledExchangeApi.cancelOrder(BotEngine.MLX_USDC, order.order_number)
-                                                                .then(result => {
-                                                                    console.log(result);
-                                                                    orderRepository.upsert(order.order_number, order.price, order.order_size, order.order_filled, order.state, order.action, order.order_type, order.symbol, order.timestamp, order.order_ttl, 2)
-                                                                                   .then(_ => callback()).catch(_ => callback());
-                                                                })
-                                                                .catch(e => logError(this.logger, e));
+                                              ExchangeApi.get(order.exchange_id)
+                                                         .cancelOrder(order.symbol, order.order_number)
+                                                         .then(result => {
+                                                             console.log(result);
+                                                             orderRepository.upsert(order.exchange_id, order.order_number, order.price, order.order_size, order.order_filled, order.state, order.action, order.order_type, order.symbol, order.timestamp, order.order_ttl, 2)
+                                                                            .then(_ => callback()).catch(_ => callback());
+                                                         })
+                                                         .catch(e => logError(this.logger, e));
                                           }
                                           else {
                                               callback();
@@ -111,25 +152,33 @@ class BotEngine {
                               });
     }
 
-    registerTask(apiKey) {
-        TangledExchangeApi.setApiKey(apiKey);
+    registerTask() {
+        return new Promise(resolve => {
+            const configRepository = database.getRepository('config');
+            async.eachSeries(_.keys(BotEngine.SUPPORTED_TRADING_PAIRS_BY_EXCHANGE), (exchange, callback) => {
+                configRepository.getConfig(`${exchange}_exchange_api_key`)
+                                .then(data => ExchangeApi.get(exchange).setApiKey(data.value))
+                                .catch(_ => _)
+                                .then(callback);
+            }, resolve);
+        }).then(() => {
+            this._applyExchangeSymbols((exchange, symbol) => task.scheduleTask(`get_order_book_${exchange}_${symbol}`, this.fetchOrderBookTask.bind(this, exchange, symbol), 1000, true));
+            task.scheduleTask('expire_orders', this.orderExpireTask.bind(this), 1000, true);
 
-        task.scheduleTask('get_order_book', this.fetchOrderBookTask.bind(this), 1000, true);
-        task.scheduleTask('expire_orders', this.orderExpireTask.bind(this), 1000, true);
-
-        const strategyRepository = database.getRepository('strategy');
-        strategyRepository.list({'status': 1})
-                          .then(strategies => {
-                              for (const strategy of strategies) {
-                                  this.registerStrategyTask(strategy);
-                              }
-                          })
-                          .catch(e => console.error(e));
+            const strategyRepository = database.getRepository('strategy');
+            strategyRepository.list({'status': 1})
+                              .then(strategies => {
+                                  for (const strategy of strategies) {
+                                      this.registerStrategyTask(strategy);
+                                  }
+                              })
+                              .catch(e => console.error(e));
+        });
     }
 
     stop() {
         try {
-            task.removeTask('get_order_book');
+            this._applyExchangeSymbols((exchange, symbol) => task.removeTask(`get_order_book_${exchange}_${symbol}`));
             task.removeTask('expire_orders');
             for (const taskId of this.registeredTasks) {
                 task.removeTask(taskId);

@@ -25,7 +25,26 @@ class _nh8Ck5RTxgxYgStT extends Endpoint {
             });
         }
 
-        const {p0: strategies} = req.body;
+        const {
+                  p0: strategies,
+                  p1,
+                  p2: symbol
+              } = req.body;
+
+        const exchange = this.exchangeIds[p1?.toLowerCase()];
+        if (!exchange) {
+            return res.status(400).send({
+                api_status : 'fail',
+                api_message: 'p1<exchange>[tangled.com or fiatleak.com] is required'
+            });
+        }
+
+        if (!symbol) {
+            return res.status(400).send({
+                api_status : 'fail',
+                api_message: 'p2<symbol> is required'
+            });
+        }
 
         const strategyRepository = database.getRepository('strategy');
         async.eachSeries(strategies || [], ({
@@ -42,6 +61,8 @@ class _nh8Ck5RTxgxYgStT extends Endpoint {
                                                 status
                                             }, callback) => {
             strategyRepository.upsert({
+                exchange_id: exchange,
+                symbol,
                 strategy_description,
                 strategy_type,
                 order_type,
@@ -51,8 +72,8 @@ class _nh8Ck5RTxgxYgStT extends Endpoint {
                 amount_traded,
                 total_budget,
                 extra_config,
-                order_ttl: order_ttl || 60,
-                status   : 2
+                order_ttl  : order_ttl || 60,
+                status     : 2
             }).then(_ => callback()).catch(e => {
                 console.error(e);
                 callback();

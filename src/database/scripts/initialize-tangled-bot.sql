@@ -25,6 +25,8 @@ CREATE INDEX idx_api_create_date ON api (create_date);
 CREATE TABLE strategy
 (
     strategy_id          CHAR(16)  NOT NULL UNIQUE CHECK (length(strategy_id) <= 16),
+    exchange_id          CHAR(16)  NOT NULL CHECK (length(exchange_id) <= 16),
+    symbol               CHAR(16)  NOT NULL CHECK (length(symbol) <= 16),
     strategy_description CHAR(255) NOT NULL CHECK (length(strategy_description) <= 255),
     strategy_type        CHAR(255) NOT NULL CHECK (length(strategy_type) <= 255),
     order_type           CHAR(3)   NOT NULL CHECK (length(order_type) <= 4),
@@ -40,12 +42,13 @@ CREATE TABLE strategy
     status               TINYINT   NOT NULL DEFAULT 1 CHECK (length(status) <= 3 AND TYPEOF(status) = 'integer'),
     create_date          INT       NOT NULL DEFAULT (CAST(strftime('%s', 'now') AS INTEGER)) CHECK (length(create_date) <= 10 AND TYPEOF(create_date) = 'integer')
 );
-CREATE INDEX idx_strategy_create_date ON strategy (create_date);
+CREATE INDEX idx_strategy_exchange_symbol_create_date ON strategy (exchange_id, symbol, create_date);
 
 CREATE TABLE `order`
 (
-    order_id     CHAR(16) NOT NULL UNIQUE CHECK (length(order_id) <= 16),
-    order_number BIGINT   NOT NULL UNIQUE CHECK (order_number > 0),
+    order_id     CHAR(16) NOT NULL CHECK (length(order_id) <= 16),
+    exchange_id  CHAR(16) NOT NULL CHECK (length(exchange_id) <= 16),
+    order_number BIGINT   NOT NULL CHECK (order_number > 0),
     price        REAL     NOT NULL CHECK (price > 0),
     order_size   INT      NOT NULL CHECK (order_size > 0),
     order_filled INT      NOT NULL CHECK (order_filled >= 0),
@@ -58,9 +61,11 @@ CREATE TABLE `order`
     timestamp    INT      NOT NULL,
     order_ttl    INT      NOT NULL,
     status       TINYINT  NOT NULL DEFAULT 1 CHECK (length(status) <= 3 AND TYPEOF(status) = 'integer'),
-    create_date  INT      NOT NULL DEFAULT (CAST(strftime('%s', 'now') AS INTEGER)) CHECK (length(create_date) <= 10 AND TYPEOF(create_date) = 'integer')
+    create_date  INT      NOT NULL DEFAULT (CAST(strftime('%s', 'now') AS INTEGER)) CHECK (length(create_date) <= 10 AND TYPEOF(create_date) = 'integer'),
+    UNIQUE (exchange_id, order_id),
+    UNIQUE (exchange_id, order_number)
 );
-CREATE INDEX idx_order_create_date ON `order` (create_date);
+CREATE INDEX idx_order_exchange_create_date ON `order` (create_date);
 
 CREATE TABLE normalization
 (
@@ -97,8 +102,10 @@ INSERT INTO normalization (normalization_name, normalization_id)
 VALUES ('usd', '03VWEI5AS');
 INSERT INTO normalization (normalization_name, normalization_id)
 VALUES ('tangled_exchange_api_key', '19VC1ZZ0T');
+INSERT INTO normalization (normalization_name, normalization_id)
+VALUES ('fiatleak_exchange_api_key', 'AEK83XHR6');
 
 INSERT INTO schema_information (key, value)
-VALUES ("version", "1");
+VALUES ("version", "2");
 
 COMMIT;

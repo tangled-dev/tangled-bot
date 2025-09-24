@@ -1,6 +1,6 @@
 import Endpoint from '../endpoint';
 import database from '../../database/database';
-import TangledExchangeApi from '../tangled-exchange-api';
+import ExchangeApi from '../exchange-api';
 
 
 /**
@@ -14,18 +14,27 @@ class _zdLrGUDCxXZLSeBz extends Endpoint {
     /**
      * configures tangled exchange api key
      * @param app
-     * @param req
+     * @param req (p0<api_key>, p1<exchange>)
      * @param res
      */
     handler(app, req, res) {
         const {
-                  p0: apiKey
+                  p0: apiKey,
+                  p1
               } = req.method === 'POST' ? req.body : req.query;
 
+        const exchange = this.exchangeIds[p1?.toLowerCase()];
+        if (!exchange) {
+            return res.status(400).send({
+                api_status : 'fail',
+                api_message: 'p1<exchange>[tangled.com or fiatleak.com] is required'
+            });
+        }
+
         const configRepository = database.getRepository('config');
-        configRepository.upsertConfig('tangled_exchange_api_key', apiKey, 'string')
+        configRepository.upsertConfig(`${exchange}_exchange_api_key`, apiKey, 'string')
                         .then(() => {
-                            TangledExchangeApi.setApiKey(apiKey);
+                            ExchangeApi.get(exchange).setApiKey(apiKey);
                             res.send({
                                 api_status: 'success'
                             });

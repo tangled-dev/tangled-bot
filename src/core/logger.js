@@ -96,7 +96,7 @@ class _Logger {
                     new winston.transports.Console({
                         handleExceptions: true,
                         handleRejections: true,
-                        format: winston.format.combine(
+                        format          : winston.format.combine(
                             this._getFormat(),
                             // Tell Winston that the logs must be colored
                             winston.format.colorize({all: true})

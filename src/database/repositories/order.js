@@ -31,9 +31,10 @@ export default class Order {
     }
 
 
-    upsert(orderNumber, price, orderSize, orderFilled, state, action, orderType, symbol, timestamp, orderTTL, status) {
+    upsert(exchangeId, orderNumber, price, orderSize, orderFilled, state, action, orderType, symbol, timestamp, orderTTL, status) {
         return new Promise((resolve, reject) => {
-            this.database.run(`INSERT INTO \`order\` (order_id, order_number,
+            this.database.run(`INSERT INTO \`order\` (order_id,
+                                                      exchange_id, order_number,
                                                       price,
                                                       order_size, order_filled,
                                                       state,
@@ -42,10 +43,12 @@ export default class Order {
                                                       timestamp, order_ttl,
                                                       status)
                                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?,
-                                       ?, ?, ?) ON CONFLICT(order_number) DO
+                                       ?, ?, ?,
+                                       ?) ON CONFLICT(exchange_id, order_number) DO
             UPDATE
                 SET price = excluded.price, order_size = excluded.order_size, order_filled = excluded.order_filled, state = excluded.state, order_ttl = excluded.order_ttl, status = excluded.status`, [
                 Database.generateID(16),
+                exchangeId,
                 orderNumber,
                 price,
                 orderSize,

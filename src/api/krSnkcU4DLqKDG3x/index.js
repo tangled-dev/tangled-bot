@@ -13,16 +13,24 @@ class _krSnkcU4DLqKDG3x extends Endpoint {
     /**
      * returns returns tangled exchange api key if configured
      * @param app
-     * @param req
+     * @param req (p0<exchange>)
      * @param res
      */
     handler(app, req, res) {
+        const exchange = this.exchangeIds[req.query.p0?.toLowerCase()];
+        if (!exchange) {
+            return res.status(400).send({
+                api_status : 'fail',
+                api_message: 'p0<exchange>[tangled.com or fiatleak.com] is required'
+            });
+        }
+
         const configRepository = database.getRepository('config');
-        configRepository.getConfig('tangled_exchange_api_key')
+        configRepository.getConfig(`${exchange}_exchange_api_key`)
                         .then(apiKey => {
                             res.send({
                                 api_status              : 'success',
-                                tangled_exchange_api_key: apiKey || null
+                                exchange_api_key: apiKey || null
                             });
                         })
                         .catch(e => res.send({

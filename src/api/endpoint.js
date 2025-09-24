@@ -1,4 +1,8 @@
 export default class Endpoint {
+    exchangeIds = {
+        'tangled.com': 'tangled',
+        'fiatleak.com': 'fiatleak'
+    }
     constructor(endpoint) {
         this.endpoint = endpoint;
         this.baseURL  = '/api/';

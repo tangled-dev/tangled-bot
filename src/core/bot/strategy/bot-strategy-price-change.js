@@ -1,14 +1,13 @@
-import TangledExchangeApi from '../../../api/tangled-exchange-api';
+import ExchangeApi from '../../../api/exchange-api';
 import database from '../../../database/database';
 import {getActionFromOrderType, getOrderAmountAndMarginPrice, getOrderAmountAndPrice, logError} from './utils';
-import logger from '../../logger';
 import {BotStrategy} from './bot-strategy';
 
 
 export class BotStrategyPriceChange extends BotStrategy {
 
-    constructor(strategy, symbol, symbolGUID, targetPriceChange, orderTTL) {
-        super(strategy, symbol, symbolGUID, orderTTL, 'BotStrategyPriceChange');
+    constructor(strategy, symbol, targetPriceChange, orderTTL) {
+        super(strategy, symbol, orderTTL, 'BotStrategyPriceChange');
         this.lastPrice         = undefined;
         this.targetPriceChange = targetPriceChange;
     }
@@ -65,17 +64,17 @@ export class BotStrategyPriceChange extends BotStrategy {
         // run
         const orderRepository    = database.getRepository('order');
         const strategyRepository = database.getRepository('strategy');
-        return TangledExchangeApi.insertOrder(this.symbolGUID, order)
+        return ExchangeApi.get(this.symbol.exchange_id).insertOrder(this.symbol, order)
                                  .then(mOrder => {
                                      if (mOrder.status) {
-                                         orderRepository.upsert(mOrder.order_id, order.price, order.size, 0, 'ACTIVE', order.action.toUpperCase(), 'GTC', this.symbol.toUpperCase(), Math.floor(Date.now() / 1000), this.orderTTL)
+                                         orderRepository.upsert(this.symbol.exchange_id, mOrder.order_id, order.price, order.size, 0, 'ACTIVE', order.action.toUpperCase(), 'GTC', this.symbol.toUpperCase(), Math.floor(Date.now() / 1000), this.orderTTL)
                                                         .then(_ => _).catch(_ => _);
                                      }
                                      this.lastRunTimestamp = Math.floor(Date.now() / 1000);
                                      this.lastRunStatus    = !mOrder.status ? 0 : 1;
                                  })
-                                 .catch(e => {
-                                     logError(this.logger, e);
+                                 .catch(() => {
+                                     // logError(this.logger, e);
                                      this.lastRunTimestamp = Math.floor(Date.now() / 1000);
                                      this.lastRunStatus    = 1;
                                  })

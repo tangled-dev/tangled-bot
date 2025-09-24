@@ -30,11 +30,31 @@ class _Dm4LbtkrxBbdXwKw extends Endpoint {
                   p8 : amount_traded,
                   p9 : total_budget,
                   p10: extra_config,
-                  p11: status
+                  p11: status,
+                  p12,
+                  p13: symbol
               } = req.method === 'POST' ? req.body : req.query;
+
+        const exchange = this.exchangeIds[p12?.toLowerCase()];
+        if (!exchange) {
+            return res.status(400).send({
+                api_status : 'fail',
+                api_message: 'p12<exchange>[tangled.com or fiatleak.com] is required'
+            });
+        }
+
+        if (!symbol) {
+            return res.status(400).send({
+                api_status : 'fail',
+                api_message: 'p13<symbol> is required'
+            });
+        }
+
 
         const strategyRepository = database.getRepository('strategy');
         strategyRepository.upsert({
+            exchange_id: exchange,
+            symbol,
             strategy_id,
             strategy_description,
             strategy_type,

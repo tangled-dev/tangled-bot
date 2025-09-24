@@ -34,8 +34,12 @@ export default class Strategy {
     upsert(strategy) {
         return new Promise((resolve, reject) => {
             const strategyID = strategy.strategy_id === undefined ? Database.generateID(16) : strategy.strategy_id;
-            this.database.run(`INSERT INTO strategy (strategy_id, strategy_description,
-                                                     strategy_type, order_type, order_ttl,
+            this.database.run(`INSERT INTO strategy (strategy_id,
+                                                     strategy_description,
+                                                     strategy_type, exchange_id,
+                                                     symbol,
+                                                     order_type,
+                                                     order_ttl,
                                                      amount,
                                                      price_min, price_max,
                                                      amount_traded,
@@ -43,10 +47,13 @@ export default class Strategy {
                                                      last_run_timestamp,
                                                      last_run_status,
                                                      status)
-                               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, [
+                               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
+                                       ?, ?)`, [
                 strategyID,
                 strategy.strategy_description,
                 strategy.strategy_type,
+                strategy.exchange_id,
+                strategy.symbol,
                 strategy.order_type,
                 strategy.order_ttl,
                 strategy.amount,
@@ -68,6 +75,8 @@ export default class Strategy {
                         const set = _.pick(strategy, [
                             'strategy_description',
                             'strategy_type',
+                            'exchange_id',
+                            'symbol',
                             'order_type',
                             'order_ttl',
                             'amount',
@@ -95,31 +104,4 @@ export default class Strategy {
             });
         });
     }
-
-    update(strategy) {
-        return new Promise((resolve, reject) => {
-            const set = _.pick(strategy, [
-                'strategy_description',
-                'strategy_type',
-                'order_type',
-                'order_ttl',
-                'amount',
-                'price_min',
-                'price_max',
-                'amount_traded',
-                'total_budget',
-                'extra_config',
-                'status'
-            ]);
-            const {
-                      sql,
-                      parameters
-                  }   = Database.buildUpdate('UPDATE strategy', set, {strategy_id: strategy.strategy_id});
-            this.database.run(sql, parameters, err => {
-                console.log(`[database] update strategy ${strategy.strategy_description} with id ${strategy.strategy_id}`);
-                return err ? reject() : resolve();
-            });
-        });
-    }
-
 }

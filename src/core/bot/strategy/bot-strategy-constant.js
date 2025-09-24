@@ -1,14 +1,13 @@
-import TangledExchangeApi from '../../../api/tangled-exchange-api';
+import ExchangeApi from '../../../api/exchange-api';
 import database from '../../../database/database';
 import {getActionFromOrderType, getOrderAmountAndMarginPrice, getOrderAmountAndPrice, logError} from './utils';
-import logger from '../../logger';
 import {BotStrategy} from './bot-strategy';
 
 
-export class BotStrategyConstant extends BotStrategy{
+export class BotStrategyConstant extends BotStrategy {
 
-    constructor(strategy, symbol, symbolGUID, orderTTL) {
-        super(strategy, symbol, symbolGUID, orderTTL, 'BotStrategyConstant');
+    constructor(strategy, symbol, orderTTL) {
+        super(strategy, symbol, orderTTL, 'BotStrategyConstant');
     }
 
     run(orderBook) {
@@ -16,7 +15,7 @@ export class BotStrategyConstant extends BotStrategy{
         if (!this.lastRunTimestamp) {
             return this.updateStrategyRunTimestamp();
         }
-        else if (this.lastRunStatus === 1 && this.lastRunTimestamp + this.waitTime > Math.floor(Date.now() / 1000) ) {
+        else if (this.lastRunStatus === 1 && this.lastRunTimestamp + this.waitTime > Math.floor(Date.now() / 1000)) {
             return;
         }
 
@@ -47,25 +46,25 @@ export class BotStrategyConstant extends BotStrategy{
         // run
         const strategyRepository = database.getRepository('strategy');
         const orderRepository    = database.getRepository('order');
-        return TangledExchangeApi.insertOrder(this.symbolGUID, order)
-                                 .then(mOrder => {
-                                     if (mOrder.status) {
-                                         orderRepository.upsert(mOrder.order_id, order.price, order.size, 0, 'ACTIVE', order.action.toUpperCase(), 'GTC', this.symbol.toUpperCase(), Math.floor(Date.now() / 1000), this.orderTTL)
-                                                        .then(_ => _).catch(_ => _);
-                                     }
-                                     this.lastRunTimestamp = Math.floor(Date.now() / 1000);
-                                     this.lastRunStatus    = !mOrder.status ? 0 : 1;
-                                 })
-                                 .catch(e => {
-                                     logError(this.logger, e);
-                                     this.lastRunTimestamp = Math.floor(Date.now() / 1000);
-                                     this.lastRunStatus    = 1;
-                                 })
-                                 .then(() => strategyRepository.upsert({
-                                     strategy_id       : this.strategy.strategy_id,
-                                     amount_traded     : this.strategy.amount_traded,
-                                     last_run_timestamp: this.lastRunTimestamp,
-                                     last_run_status   : this.lastRunStatus
-                                 }).then(_ => _).catch(_ => _));
+        return ExchangeApi.get(this.strategy.exchange_id).insertOrder(this.symbol, order)
+                          .then(mOrder => {
+                              if (mOrder.status) {
+                                  orderRepository.upsert(this.strategy.exchange_id, mOrder.order_id, order.price, order.size, 0, 'ACTIVE', order.action.toUpperCase(), 'GTC', this.symbol.toUpperCase(), Math.floor(Date.now() / 1000), this.orderTTL)
+                                                 .then(_ => _).catch(_ => _);
+                              }
+                              this.lastRunTimestamp = Math.floor(Date.now() / 1000);
+                              this.lastRunStatus    = !mOrder.status ? 0 : 1;
+                          })
+                          .catch(() => {
+                              //logError(this.logger, e);
+                              this.lastRunTimestamp = Math.floor(Date.now() / 1000);
+                              this.lastRunStatus    = 1;
+                          })
+                          .then(() => strategyRepository.upsert({
+                              strategy_id       : this.strategy.strategy_id,
+                              amount_traded     : this.strategy.amount_traded,
+                              last_run_timestamp: this.lastRunTimestamp,
+                              last_run_status   : this.lastRunStatus
+                          }).then(_ => _).catch(_ => _));
     }
 }

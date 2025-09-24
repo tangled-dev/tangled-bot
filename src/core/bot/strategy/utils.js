@@ -60,10 +60,5 @@ export const logError = (logger, error) => {
         logger.error('Error code:' + error.code);
         logger.error('No response received');
     }
-    else {
-        // Other errors
-        logger.error('Error message:' + JSON.stringify(error?.message || ''));
-    }
     logger.error(error);
-    logger.error(JSON.stringify(error));
 };

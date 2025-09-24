@@ -19,12 +19,18 @@ class _G53BNuerqTA7LSuF extends Endpoint {
     handler(app, req, res) {
         const {
                   p0: strategyType,
-                  p1: orderBy,
-                  p2: limit
+                  p1,
+                  p2: symbol,
+                  p3: orderBy,
+                  p4: limit
               } = req.query;
+
+        const exchange = this.exchangeIds[p1?.toLowerCase()];
 
         const strategyRepository = database.getRepository('strategy');
         strategyRepository.list({
+            symbol,
+            exchange_id  : exchange,
             strategy_type: strategyType,
             'status!'    : 0
         }, orderBy, limit)
