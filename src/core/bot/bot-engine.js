@@ -7,6 +7,7 @@ import async from 'async';
 import logger from '../logger';
 import {logError} from './strategy/utils';
 import _ from 'lodash';
+import {BotStrategySpread} from './strategy/bot-strategy-spread';
 
 
 class BotEngine {
@@ -78,7 +79,8 @@ class BotEngine {
         this.initialized     = true;
         this.registeredTasks = [];
         this.logger          = logger.getLogger('BotEngine');
-        logError(this.logger, new Error('bot initialized - v0.1'));
+
+        this.logger.debug('bot initialized - v0.1');
         return this.registerTask();
     }
 
@@ -98,6 +100,19 @@ class BotEngine {
             waitTime          = extraConfig.time_frame;
             botStrategy       = new BotStrategyPriceChange(strategy, strategy.symbol, extraConfig.price_change_percentage, strategy.order_ttl);
             this.onOrderBookCallback[strategy.exchange_id][strategy.symbol].push(orderBook => botStrategy.setLastPrice(orderBook));
+        }
+        else if (strategy.strategy_type === 'strategy-spread') {
+            const extraConfig = JSON.parse(strategy.extra_config);
+            waitTime          = extraConfig.time_frequency;
+            try {
+                const spreadPercentageFrom = parseFloat(extraConfig.spread_percentage_begin);
+                const spreadPercentageTo   = parseFloat(extraConfig.spread_percentage_end);
+
+                botStrategy = new BotStrategySpread(strategy, strategy.symbol, spreadPercentageFrom, spreadPercentageTo, strategy.order_ttl);
+            }
+            catch (e) {
+                return;
+            }
         }
         else {
             return;

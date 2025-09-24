@@ -49,7 +49,7 @@ FROM _strategy_old;
 
 DROP TABLE _strategy_old;
 
-ALTER TABLE `order` RENAME TO _order_old;
+DROP TABLE `order`;
 DROP INDEX idx_order_create_date;
 
 CREATE TABLE `order`
@@ -74,21 +74,6 @@ CREATE TABLE `order`
     UNIQUE (exchange_id, order_number)
 );
 CREATE INDEX idx_order_exchange_create_date ON `order` (create_date);
-
-INSERT INTO `order` (order_id, exchange_id, order_number, price, order_size, order_filled, user_cookie, state, action,
-                     order_type, symbol, deals, timestamp, order_ttl, status, create_date)
-SELECT order_id,
-       'tangled',
-       order_number,
-       price,
-       order_size,
-       order_filled,
-       user_cookie,
-       state, action, order_type, symbol, deals, timestamp, order_ttl, status, create_date
-FROM _order_old;
-
-DROP TABLE _order_old;
-
 
 INSERT INTO normalization (normalization_name, normalization_id)
 VALUES ('fiatleak_exchange_api_key', 'AEK83XHR6');

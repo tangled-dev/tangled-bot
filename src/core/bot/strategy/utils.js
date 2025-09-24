@@ -18,6 +18,41 @@ export const getOrderAmountAndPrice = (prices, volumes, amount, priceMin, priceM
     };
 };
 
+
+export const getSpreadOrderAmountAndPrice = (askPrice, bidPrice, spreadPercentageFrom, spreadPercentageTo, amount, priceMin, priceMax, isBid) => {
+    if (!askPrice && !bidPrice) {
+        return {
+            price: undefined,
+            size : amount
+        };
+    }
+
+    if (!askPrice) {
+        askPrice = bidPrice;
+    }
+
+    if (!bidPrice) {
+        bidPrice = askPrice;
+    }
+
+    let price              = parseFloat(((askPrice + bidPrice) / 2).toFixed(9));
+    const spreadPercentage = getRandomFloatInclusive(spreadPercentageFrom, spreadPercentageTo, 2) / 2;
+
+    price = parseFloat((isBid ? (price - price * spreadPercentage / 100) : (price + price * spreadPercentage / 100)).toFixed(9));
+
+    if (price > priceMax || price < priceMin) {
+        return {
+            price: undefined,
+            size : amount
+        };
+    }
+
+    return {
+        price,
+        size: amount
+    };
+};
+
 export const getOrderAmountAndMarginPrice = (askPrice, bidPrice, amount, priceMin, priceMax, isBid) => {
     const delta = 0.000000001;
     let price   = parseFloat(isBid ? (bidPrice + delta).toFixed(9) : (askPrice - delta).toFixed(9));
@@ -62,3 +97,9 @@ export const logError = (logger, error) => {
     }
     logger.error(error);
 };
+
+export const getRandomFloatInclusive = (min, max, decimals = 9) => {
+    const rand = Math.random() * (max - min + Number.EPSILON) + min;
+    return parseFloat(rand.toFixed(decimals));
+};
+

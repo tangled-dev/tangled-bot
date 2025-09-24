@@ -15,7 +15,7 @@ export class BotStrategyConstant extends BotStrategy {
         if (!this.lastRunTimestamp) {
             return this.updateStrategyRunTimestamp();
         }
-        else if (this.lastRunStatus === 1 && this.lastRunTimestamp + this.waitTime > Math.floor(Date.now() / 1000)) {
+        else if (this.lastRunTimestamp + this.waitTime > Math.floor(Date.now() / 1000)) {
             return;
         }
 
@@ -53,12 +53,12 @@ export class BotStrategyConstant extends BotStrategy {
                                                  .then(_ => _).catch(_ => _);
                               }
                               this.lastRunTimestamp = Math.floor(Date.now() / 1000);
-                              this.lastRunStatus    = !mOrder.status ? 0 : 1;
+                              this.lastRunStatus    = mOrder.status ? 1 : 0;
                           })
                           .catch(() => {
                               //logError(this.logger, e);
                               this.lastRunTimestamp = Math.floor(Date.now() / 1000);
-                              this.lastRunStatus    = 1;
+                              this.lastRunStatus    = 0;
                           })
                           .then(() => strategyRepository.upsert({
                               strategy_id       : this.strategy.strategy_id,
