@@ -57,7 +57,49 @@ class ExchangeApi {
         return (await this.api.get(this._withApiKey(`/api_public.php?endpoint=exchange_get_currency_pair_stat&currency_pair_name=${symbol}&time_frame=${timeFrame}`))).data;
     }
 
+    _validateOrder(symbol, order) {
+        const symbolConfig = config.EXCHANGE_CONFIG[symbol.toLowerCase()];
+        if (!symbolConfig) {
+            return {
+                valid: false,
+                error: 'exchange_config_not_found'
+            };
+        }
+
+        if (order.size < symbolConfig.order_size_min) {
+            return {
+                valid: false,
+                error: 'exchange_config_order_size_min_error'
+            };
+        }
+        if (order.size > symbolConfig.order_size_max) {
+            return {
+                valid: false,
+                error: 'exchange_config_order_size_max_error'
+            };
+        }
+        if (order.price < symbolConfig.order_price_min) {
+            return {
+                valid: false,
+                error: 'exchange_config_order_price_min_error'
+            };
+        }
+        if (order.price > symbolConfig.order_price_max) {
+            return {
+                valid: false,
+                error: 'exchange_config_order_price_max_error'
+            };
+        }
+
+        return {valid: true};
+    }
+
     async insertOrder(symbol, order) {
+        const validation = this._validateOrder(symbol, order);
+        if (!validation.valid) {
+            return Promise.reject(`exchange_config_order_${symbol.toLowerCase()}:${validation.error}`)
+        }
+
         return (await this.api.post(this._withApiKey(`/api_public.php?endpoint=exchange_insert_order`), {
             currency_pair_symbol: symbol,
             amount              : order.size,
