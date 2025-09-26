@@ -69,7 +69,7 @@ class _Dm4LbtkrxBbdXwKw extends Endpoint {
             status
         }).then(strategy => {
 
-            if (!strategy_id) {
+            if (!strategy_id && strategy.status === 1) {
                 BotEngine.registerStrategyTask(strategy);
             }
             else if (strategy.status === 1) {
