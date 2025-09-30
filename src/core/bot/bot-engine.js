@@ -152,12 +152,11 @@ class BotEngine {
                                           if (order.timestamp + order.order_ttl < now) {
                                               ExchangeApi.get(order.exchange_id)
                                                          .cancelOrder(order.symbol, order.order_number)
-                                                         .then(result => {
-                                                             console.log(result);
-                                                             orderRepository.upsert(order.exchange_id, order.order_number, order.price, order.order_size, order.order_filled, order.state, order.action, order.order_type, order.symbol, order.timestamp, order.order_ttl, 2)
-                                                                            .then(_ => callback()).catch(_ => callback());
+                                                         .then(() => {
+                                                             return orderRepository.upsert(order.exchange_id, order.order_number, order.price, order.order_size, order.order_filled, order.state, order.action, order.order_type, order.symbol, order.timestamp, order.order_ttl, 2);
                                                          })
-                                                         .catch(e => logError(this.logger, e));
+                                                         .catch(e => logError(this.logger, e))
+                                                         .then(() => callback());
                                           }
                                           else {
                                               callback();
