@@ -1,4 +1,4 @@
-export const getOrderAmountAndPrice = (prices, volumes, amount, priceMin, priceMax) => {
+export const getOrderAmountAndPrice = (prices, volumes, amount, priceMin, priceMax, pricePrecision) => {
     let aggVolume = 0;
     let price;
     for (let i = 0; i < prices.length; i++) {
@@ -13,13 +13,13 @@ export const getOrderAmountAndPrice = (prices, volumes, amount, priceMin, priceM
         }
     }
     return {
-        price,
+        price: parseFloat(price.toFixed(pricePrecision)),
         size: Math.min(aggVolume, amount)
     };
 };
 
 
-export const getSpreadOrderAmountAndPrice = (askPrice, bidPrice, spreadPercentageFrom, spreadPercentageTo, amount, priceMin, priceMax, isBid) => {
+export const getSpreadOrderAmountAndPrice = (askPrice, bidPrice, spreadPercentageFrom, spreadPercentageTo, amount, priceMin, priceMax, isBid, pricePrecision) => {
     if (!askPrice && !bidPrice) {
         return {
             price: undefined,
@@ -35,10 +35,10 @@ export const getSpreadOrderAmountAndPrice = (askPrice, bidPrice, spreadPercentag
         bidPrice = askPrice;
     }
 
-    let price              = parseFloat(((askPrice + bidPrice) / 2).toFixed(9));
+    let price              = parseFloat(((askPrice + bidPrice) / 2).toFixed(pricePrecision));
     const spreadPercentage = getRandomFloatInclusive(spreadPercentageFrom, spreadPercentageTo, 2) / 2;
 
-    price = parseFloat((isBid ? (price - price * spreadPercentage / 100) : (price + price * spreadPercentage / 100)).toFixed(9));
+    price = parseFloat((isBid ? (price - price * spreadPercentage / 100) : (price + price * spreadPercentage / 100)).toFixed(pricePrecision));
 
     if (Number.isFinite(priceMax) && price > priceMax || Number.isFinite(priceMin) && price < priceMin) {
         return {
@@ -53,9 +53,9 @@ export const getSpreadOrderAmountAndPrice = (askPrice, bidPrice, spreadPercentag
     };
 };
 
-export const getOrderAmountAndMarginPrice = (askPrice, bidPrice, amount, priceMin, priceMax, isBid) => {
-    const delta = 0.000000001;
-    let price   = parseFloat(isBid ? (bidPrice + delta).toFixed(9) : (askPrice - delta).toFixed(9));
+export const getOrderAmountAndMarginPrice = (askPrice, bidPrice, amount, priceMin, priceMax, isBid, pricePrecision) => {
+    const delta = 1 / Math.pow(10, pricePrecision);
+    let price   = parseFloat(isBid ? (bidPrice + delta).toFixed(pricePrecision) : (askPrice - delta).toFixed(pricePrecision));
     if (isBid) {
         if (price >= askPrice) {
             price = bidPrice;

@@ -3,6 +3,7 @@ import database from '../../../database/database';
 import {getActionFromOrderType, getSpreadOrderAmountAndPrice, logError} from './utils';
 import {BotStrategy} from './bot-strategy';
 import async from 'async';
+import config from '../../../config/config';
 
 
 export class BotStrategySpread extends BotStrategy {
@@ -14,7 +15,7 @@ export class BotStrategySpread extends BotStrategy {
         this.running              = false;
     }
 
-    _getOrders(orderBook) {
+    _getOrders(orderBook, pricePrecision) {
         const orderType = this.strategy.order_type;
         const action    = getActionFromOrderType(orderType);
         if (action === 'both') {
@@ -22,13 +23,13 @@ export class BotStrategySpread extends BotStrategy {
                 action: 'bid',
                 ...getSpreadOrderAmountAndPrice(orderBook.askPrices[0], orderBook.bidPrices[0],
                     this.spreadPercentageFrom, this.spreadPercentageTo,
-                    this.strategy.amount, this.strategy.price_min, this.strategy.price_max, true)
+                    this.strategy.amount, this.strategy.price_min, this.strategy.price_max, true, pricePrecision)
             };
             const askOrder = {
                 action: 'ask',
                 ...getSpreadOrderAmountAndPrice(orderBook.askPrices[0], orderBook.bidPrices[0],
                     this.spreadPercentageFrom, this.spreadPercentageTo,
-                    this.strategy.amount, this.strategy.price_min, this.strategy.price_max, false)
+                    this.strategy.amount, this.strategy.price_min, this.strategy.price_max, false, pricePrecision)
             };
 
             if (!bidOrder.price || !askOrder.price) {
@@ -45,7 +46,7 @@ export class BotStrategySpread extends BotStrategy {
                 action,
                 ...getSpreadOrderAmountAndPrice(orderBook.askPrices[0], orderBook.bidPrices[0],
                     this.spreadPercentageFrom, this.spreadPercentageTo,
-                    this.strategy.amount, this.strategy.price_min, this.strategy.price_max, action === 'bid')
+                    this.strategy.amount, this.strategy.price_min, this.strategy.price_max, action === 'bid', pricePrecision)
             };
 
             return !order.price ? [] : [order];
@@ -60,6 +61,12 @@ export class BotStrategySpread extends BotStrategy {
         else if (this.running || this.lastRunTimestamp + this.waitTime > Math.floor(Date.now() / 1000)) {
             return;
         }
+
+        const symbolConfig = config.EXCHANGE_CONFIG[this.symbol.toLowerCase()];
+        if (!symbolConfig) {
+            return;
+        }
+
         this.running = true;
 
         if (!orderBook || !orderBook.askPrices || !orderBook.bidPrices
@@ -69,7 +76,7 @@ export class BotStrategySpread extends BotStrategy {
             return;
         }
 
-        const orders = this._getOrders(orderBook);
+        const orders = this._getOrders(orderBook, symbolConfig.order_price_float_precision);
 
         const usedBudget = (this.strategy.amount_traded || 0) + orders.reduce((amount, o) => o.size + amount, 0);
 

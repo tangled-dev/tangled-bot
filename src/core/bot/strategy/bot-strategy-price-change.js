@@ -2,6 +2,7 @@ import ExchangeApi from '../../../api/exchange-api';
 import database from '../../../database/database';
 import {getActionFromOrderType, getOrderAmountAndMarginPrice, getOrderAmountAndPrice, logError} from './utils';
 import {BotStrategy} from './bot-strategy';
+import config from '../../../config/config';
 
 
 export class BotStrategyPriceChange extends BotStrategy {
@@ -27,6 +28,11 @@ export class BotStrategyPriceChange extends BotStrategy {
             return;
         }
 
+        const symbolConfig = config.EXCHANGE_CONFIG[this.symbol.toLowerCase()];
+        if (!symbolConfig) {
+            return;
+        }
+
         if (!orderBook || !orderBook.askPrices || !orderBook.bidPrices
             || !orderBook.askVolumes || !orderBook.bidVolumes || !this.lastPrice) {
             if (this.lastPrice) {
@@ -44,14 +50,16 @@ export class BotStrategyPriceChange extends BotStrategy {
             return this.updateStrategyRunTimestamp();
         }
 
+        const pricePrecision = symbolConfig.order_price_float_precision
+
         let order = {
             action,
             ...(orderType === 'bid' || orderType === 'ask') ?
                getOrderAmountAndMarginPrice(orderBook.askPrices[0], orderBook.bidPrices[0],
-                   this.strategy.amount, this.strategy.price_min, this.strategy.price_max, orderType === 'bid') :
+                   this.strategy.amount, this.strategy.price_min, this.strategy.price_max, orderType === 'bid', pricePrecision) :
                getOrderAmountAndPrice(orderType === 'buy' ? orderBook.askPrices : orderBook.bidPrices,
                    orderType === 'buy' ? orderBook.askVolumes : orderBook.bidVolumes,
-                   this.strategy.amount, this.strategy.price_min, this.strategy.price_max)
+                   this.strategy.amount, this.strategy.price_min, this.strategy.price_max, pricePrecision)
         };
 
         const usedBudget = (this.strategy.amount_traded || 0) + order.size;
