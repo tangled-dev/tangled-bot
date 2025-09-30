@@ -65,6 +65,7 @@ export class BotStrategySpread extends BotStrategy {
         if (!orderBook || !orderBook.askPrices || !orderBook.bidPrices
             || !orderBook.askVolumes || !orderBook.bidVolumes) {
             logError(this.logger, new Error(`cannot execute: orderbook = ${JSON.stringify(orderBook)}`));
+            this.running = false;
             return;
         }
 
@@ -73,6 +74,7 @@ export class BotStrategySpread extends BotStrategy {
         const usedBudget = (this.strategy.amount_traded || 0) + orders.reduce((amount, o) => o.size + amount, 0);
 
         if (orders.length === 0 || usedBudget > this.strategy.total_budget) {
+            this.running = false;
             return this.updateStrategyRunTimestamp();
         }
 

@@ -40,7 +40,7 @@ export const getSpreadOrderAmountAndPrice = (askPrice, bidPrice, spreadPercentag
 
     price = parseFloat((isBid ? (price - price * spreadPercentage / 100) : (price + price * spreadPercentage / 100)).toFixed(9));
 
-    if (price > priceMax || price < priceMin) {
+    if (Number.isFinite(priceMax) && price > priceMax || Number.isFinite(priceMin) && price < priceMin) {
         return {
             price: undefined,
             size : amount
