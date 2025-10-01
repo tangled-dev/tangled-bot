@@ -91,22 +91,21 @@ class BotEngine {
         const taskId = `bot-strategy-${strategy.strategy_id}`;
         let waitTime;
         let botStrategy;
+        strategy.extra_config = JSON.parse(strategy.extra_config);
         if (strategy.strategy_type === 'strategy-constant') {
-            waitTime    = JSON.parse(strategy.extra_config).time_frequency;
+            waitTime    = strategy.extra_config.time_frequency;
             botStrategy = new BotStrategyConstant(strategy, strategy.symbol, strategy.order_ttl);
         }
         else if (strategy.strategy_type === 'strategy-price-change') {
-            const extraConfig = JSON.parse(strategy.extra_config);
-            waitTime          = extraConfig.time_frame;
-            botStrategy       = new BotStrategyPriceChange(strategy, strategy.symbol, extraConfig.price_change_percentage, strategy.order_ttl);
+            waitTime          = strategy.extra_config.time_frame;
+            botStrategy       = new BotStrategyPriceChange(strategy, strategy.symbol, strategy.extra_config.price_change_percentage, strategy.order_ttl);
             this.onOrderBookCallback[strategy.exchange_id][strategy.symbol].push(orderBook => botStrategy.setLastPrice(orderBook));
         }
         else if (strategy.strategy_type === 'strategy-spread') {
-            const extraConfig = JSON.parse(strategy.extra_config);
-            waitTime          = extraConfig.time_frequency;
+            waitTime          = strategy.extra_config.time_frequency;
             try {
-                const spreadPercentageFrom = parseFloat(extraConfig.spread_percentage_begin);
-                const spreadPercentageTo   = parseFloat(extraConfig.spread_percentage_end);
+                const spreadPercentageFrom = parseFloat(strategy.extra_config.spread_percentage_begin);
+                const spreadPercentageTo   = parseFloat(strategy.extra_config.spread_percentage_end);
 
                 botStrategy = new BotStrategySpread(strategy, strategy.symbol, spreadPercentageFrom, spreadPercentageTo, strategy.order_ttl);
             }

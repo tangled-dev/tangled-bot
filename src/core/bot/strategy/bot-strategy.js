@@ -1,5 +1,7 @@
 import database from '../../../database/database';
 import logger from '../../logger';
+import {getRandomFloatInclusive} from './utils';
+import config from '../../../config/config';
 
 
 export class BotStrategy {
@@ -12,10 +14,20 @@ export class BotStrategy {
         this.lastRunTimestamp = strategy.last_run_timestamp;
         this.lastRunStatus    = strategy.last_run_status;
         this.waitTime         = 1;
+        this.symbolConfig     = config.EXCHANGE_CONFIG[this.symbol.toLowerCase()];
     }
 
     setWaitTime(waitTime) {
         this.waitTime = waitTime;
+    }
+
+    _getAmount() {
+        const amount      = this.strategy.amount;
+        const variation = this.strategy.extra_config.amount_variation;
+        if (!variation) {
+            return amount;
+        }
+        return getRandomFloatInclusive(amount - variation, amount + variation, this.symbolConfig.order_size_float_precision);
     }
 
     updateStrategyRunTimestamp() {

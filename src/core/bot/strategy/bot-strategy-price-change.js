@@ -56,10 +56,10 @@ export class BotStrategyPriceChange extends BotStrategy {
             action,
             ...(orderType === 'bid' || orderType === 'ask') ?
                getOrderAmountAndMarginPrice(orderBook.askPrices[0], orderBook.bidPrices[0],
-                   this.strategy.amount, this.strategy.price_min, this.strategy.price_max, orderType === 'bid', pricePrecision) :
+                   this._getAmount(), this.strategy.price_min, this.strategy.price_max, orderType === 'bid', pricePrecision) :
                getOrderAmountAndPrice(orderType === 'buy' ? orderBook.askPrices : orderBook.bidPrices,
                    orderType === 'buy' ? orderBook.askVolumes : orderBook.bidVolumes,
-                   this.strategy.amount, this.strategy.price_min, this.strategy.price_max, pricePrecision)
+                   this._getAmount(), this.strategy.price_min, this.strategy.price_max, pricePrecision)
         };
 
         const usedBudget = (this.strategy.amount_traded || 0) + order.size;

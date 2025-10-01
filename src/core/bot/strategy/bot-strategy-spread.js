@@ -23,13 +23,13 @@ export class BotStrategySpread extends BotStrategy {
                 action: 'bid',
                 ...getSpreadOrderAmountAndPrice(orderBook.askPrices[0], orderBook.bidPrices[0],
                     this.spreadPercentageFrom, this.spreadPercentageTo,
-                    this.strategy.amount, this.strategy.price_min, this.strategy.price_max, true, pricePrecision)
+                    this._getAmount(), this.strategy.price_min, this.strategy.price_max, true, pricePrecision)
             };
             const askOrder = {
                 action: 'ask',
                 ...getSpreadOrderAmountAndPrice(orderBook.askPrices[0], orderBook.bidPrices[0],
                     this.spreadPercentageFrom, this.spreadPercentageTo,
-                    this.strategy.amount, this.strategy.price_min, this.strategy.price_max, false, pricePrecision)
+                    this._getAmount(), this.strategy.price_min, this.strategy.price_max, false, pricePrecision)
             };
 
             if (!bidOrder.price || !askOrder.price) {
