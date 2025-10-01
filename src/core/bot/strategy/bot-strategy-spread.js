@@ -46,7 +46,7 @@ export class BotStrategySpread extends BotStrategy {
                 action,
                 ...getSpreadOrderAmountAndPrice(orderBook.askPrices[0], orderBook.bidPrices[0],
                     this.spreadPercentageFrom, this.spreadPercentageTo,
-                    this.strategy.amount, this.strategy.price_min, this.strategy.price_max, action === 'bid', pricePrecision)
+                    this._getAmount(), this.strategy.price_min, this.strategy.price_max, action === 'bid', pricePrecision)
             };
 
             return !order.price ? [] : [order];
