@@ -19,6 +19,24 @@
       "enable": true
     },
     {
+      "id": "C4tHbjubWU4CBkFD",
+      "name": "get_user_state",
+      "description": "returns the account state",
+      "method": "GET",
+      "version_released": "1.0.0",
+      "permission": "{\"require_identity\": false, \"private\": false}",
+      "enable": true
+    },
+    {
+      "id": "XBJ54ag84j2jKcN9",
+      "name": "remove_unmanaged_order",
+      "description": "returns the ok or internal error",
+      "method": "GET",
+      "version_released": "1.0.0",
+      "permission": "{\"require_identity\": false, \"private\": false}",
+      "enable": true
+    },
+    {
       "id": "G53BNuerqTA7LSuF",
       "name": "list_strategy",
       "description": "returns the list of strategies",
