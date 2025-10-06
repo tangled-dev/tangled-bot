@@ -3,12 +3,60 @@ import database from '../../../database/database';
 import {getActionFromOrderType, getOrderAmountAndMarginPrice, getOrderAmountAndPrice, logError} from './utils';
 import {BotStrategy} from './bot-strategy';
 import config from '../../../config/config';
+import async from 'async';
 
 
 export class BotStrategyConstant extends BotStrategy {
 
     constructor(strategy, symbol, orderTTL) {
         super(strategy, symbol, orderTTL, 'BotStrategyConstant');
+    }
+
+    _getOrders(orderBook, pricePrecision) {
+        const orderType = this.strategy.order_type;
+        const action    = getActionFromOrderType(orderType);
+        if (action === 'ab' || action === 'ba') {
+
+            const isBidAsk = action === 'ba';
+
+            const order = isBidAsk ? getOrderAmountAndMarginPrice(orderBook.askPrices[0], orderBook.bidPrices[0], this._getAmount(), this.strategy.price_min, this.strategy.price_max, true, pricePrecision) :
+                          getOrderAmountAndMarginPrice(orderBook.askPrices[0], orderBook.bidPrices[0], this._getAmount(), this.strategy.price_min, this.strategy.price_max, false, pricePrecision);
+
+            const bidOrder = {
+                ...order,
+                action: 'bid'
+            };
+
+            const askOrder = {
+                ...order,
+                action: 'ask'
+            };
+
+            if (!bidOrder.price || !askOrder.price) {
+                return [];
+            }
+
+            return isBidAsk ? [
+                bidOrder,
+                askOrder
+            ] : [
+                askOrder,
+                bidOrder
+            ];
+        }
+        else {
+            const order = {
+                action,
+                ...(orderType === 'bid' || orderType === 'ask') ?
+                   getOrderAmountAndMarginPrice(orderBook.askPrices[0], orderBook.bidPrices[0],
+                       this._getAmount(), this.strategy.price_min, this.strategy.price_max, orderType === 'bid', pricePrecision) :
+                   getOrderAmountAndPrice(orderType === 'buy' ? orderBook.askPrices : orderBook.bidPrices,
+                       orderType === 'buy' ? orderBook.askVolumes : orderBook.bidVolumes,
+                       this._getAmount(), this.strategy.price_min, this.strategy.price_max, pricePrecision)
+            };
+
+            return !order.price ? [] : [order];
+        }
     }
 
     run(orderBook) {
@@ -30,21 +78,13 @@ export class BotStrategyConstant extends BotStrategy {
             logError(this.logger, new Error(`cannot execute: orderbook = ${JSON.stringify(orderBook)}`));
             return;
         }
-        const orderType = this.strategy.order_type;
-        const pricePrecision = symbolConfig.order_price_float_precision
-        let order       = {
-            action: getActionFromOrderType(orderType),
-            ...(orderType === 'bid' || orderType === 'ask') ?
-               getOrderAmountAndMarginPrice(orderBook.askPrices[0], orderBook.bidPrices[0],
-                   this._getAmount(), this.strategy.price_min, this.strategy.price_max, orderType === 'bid', pricePrecision) :
-               getOrderAmountAndPrice(orderType === 'buy' ? orderBook.askPrices : orderBook.bidPrices,
-                   orderType === 'buy' ? orderBook.askVolumes : orderBook.bidVolumes,
-                   this._getAmount(), this.strategy.price_min, this.strategy.price_max, pricePrecision)
-        };
 
-        const usedBudget = (this.strategy.amount_traded || 0) + order.size;
+        const orders = this._getOrders(orderBook, symbolConfig.order_price_float_precision);
 
-        if (!order.price || usedBudget > this.strategy.total_budget) {
+        const usedBudget = (this.strategy.amount_traded || 0) + orders.reduce((amount, o) => o.size + amount, 0);
+
+        if (orders.length === 0 || usedBudget > this.strategy.total_budget) {
+            this.running = false;
             return this.updateStrategyRunTimestamp();
         }
 
@@ -53,25 +93,55 @@ export class BotStrategyConstant extends BotStrategy {
         // run
         const strategyRepository = database.getRepository('strategy');
         const orderRepository    = database.getRepository('order');
-        return ExchangeApi.get(this.strategy.exchange_id).insertOrder(this.symbol, order)
-                          .then(mOrder => {
-                              if (mOrder.status) {
-                                  orderRepository.upsert(this.strategy.exchange_id, mOrder.order_id, order.price, order.size, 0, 'ACTIVE', order.action.toUpperCase(), 'GTC', this.symbol.toUpperCase(), Math.floor(Date.now() / 1000), this.orderTTL)
-                                                 .then(_ => _).catch(_ => _);
-                              }
-                              this.lastRunTimestamp = Math.floor(Date.now() / 1000);
-                              this.lastRunStatus    = mOrder.status ? 1 : 0;
-                          })
-                          .catch(() => {
-                              //logError(this.logger, e);
-                              this.lastRunTimestamp = Math.floor(Date.now() / 1000);
-                              this.lastRunStatus    = 0;
-                          })
-                          .then(() => strategyRepository.upsert({
-                              strategy_id       : this.strategy.strategy_id,
-                              amount_traded     : this.strategy.amount_traded,
-                              last_run_timestamp: this.lastRunTimestamp,
-                              last_run_status   : this.lastRunStatus
-                          }).then(_ => _).catch(_ => _));
+        const exchangeApi        = ExchangeApi.get(this.strategy.exchange_id);
+        return new Promise((resolve, reject) => {
+            const insertedOrders = [];
+            async.eachSeries(orders, (order, callback) => {
+                exchangeApi.insertOrder(this.symbol, order)
+                           .then(mOrder => {
+                               let success = mOrder.status;
+                               if (success) {
+                                   insertedOrders.push(mOrder);
+                                   orderRepository.upsert(this.strategy.exchange_id, mOrder.order_id, order.price, order.size, 0, 'ACTIVE', order.action.toUpperCase(), 'GTC', this.symbol.toUpperCase(), Math.floor(Date.now() / 1000), this.orderTTL)
+                                                  .then(_ => _).catch(_ => _);
+                               }
+                               callback(!success ? true : null);
+                           }).catch(callback);
+            }, (error) => {
+                if (error) {
+                    if (insertedOrders.length === 1) {
+                        // cancel the order that was inserted
+                        const mOrder = insertedOrders[0];
+                        return orderRepository.get({
+                            exchange_id : this.strategy.exchange_id,
+                            order_number: mOrder.order_id
+                        }).then(order => {
+                            if (!order) {
+                                throw Error(`order_not_found: ${this.strategy.exchange_id}-${mOrder.order_id}`);
+                            }
+                            return exchangeApi.cancelOrder(order.symbol, order.order_id)
+                                              .then(() => orderRepository.upsert(order.exchange_id, order.order_number, order.price, order.order_size, order.order_filled, order.state, order.action, order.order_type, order.symbol, order.timestamp, order.order_ttl, 2));
+                        }).catch(e => logError(this.logger, e)).then(() => reject());
+                    }
+
+                    return reject();
+                }
+                this.strategy.amount_traded = usedBudget;
+                this.lastRunTimestamp       = Math.floor(Date.now() / 1000);
+                this.lastRunStatus          = 1;
+                this.running                = false;
+                resolve();
+            });
+        }).catch(() => {
+            //logError(this.logger, e);
+            this.lastRunTimestamp = Math.floor(Date.now() / 1000);
+            this.lastRunStatus    = 0;
+        })
+          .then(() => strategyRepository.upsert({
+              strategy_id       : this.strategy.strategy_id,
+              amount_traded     : this.strategy.amount_traded,
+              last_run_timestamp: this.lastRunTimestamp,
+              last_run_status   : this.lastRunStatus
+          }).then(_ => _).catch(_ => _));
     }
 }
