@@ -14,31 +14,43 @@ export const getOrderAmountAndPrice = (prices, volumes, amount, priceMin, priceM
     }
     return {
         price: parseFloat(price.toFixed(pricePrecision)),
-        size: Math.min(aggVolume, amount)
+        size : Math.min(aggVolume, amount)
     };
 };
 
 
-export const getSpreadOrderAmountAndPrice = (askPrice, bidPrice, spreadPercentageFrom, spreadPercentageTo, amount, priceMin, priceMax, isBid, pricePrecision) => {
-    if (!askPrice && !bidPrice) {
+export const getSpreadOrderAmountAndPrice = (askPrice, bidPrice, spreadPercentageFrom, spreadPercentageTo, amount, priceMin, priceMax, isBid, pricePrecision, priceSource, externalPrice) => {
+    let price;
+    if (!priceSource || priceSource === 'orderbook') {
+        if (!askPrice && !bidPrice) {
+            return {
+                price: undefined,
+                size : amount
+            };
+        }
+
+        if (!askPrice) {
+            askPrice = bidPrice;
+        }
+
+        if (!bidPrice) {
+            bidPrice = askPrice;
+        }
+
+        price                  = parseFloat(((askPrice + bidPrice) / 2).toFixed(pricePrecision));
+        const spreadPercentage = getRandomFloatInclusive(spreadPercentageFrom, spreadPercentageTo, 2) / 2;
+
+        price = parseFloat((isBid ? (price - price * spreadPercentage / 100) : (price + price * spreadPercentage / 100)).toFixed(pricePrecision));
+    }
+    else if (priceSource === 'fiatleak') {
+        price = parseFloat(externalPrice.toFixed(pricePrecision));
+    }
+    else {
         return {
             price: undefined,
             size : amount
         };
     }
-
-    if (!askPrice) {
-        askPrice = bidPrice;
-    }
-
-    if (!bidPrice) {
-        bidPrice = askPrice;
-    }
-
-    let price              = parseFloat(((askPrice + bidPrice) / 2).toFixed(pricePrecision));
-    const spreadPercentage = getRandomFloatInclusive(spreadPercentageFrom, spreadPercentageTo, 2) / 2;
-
-    price = parseFloat((isBid ? (price - price * spreadPercentage / 100) : (price + price * spreadPercentage / 100)).toFixed(pricePrecision));
 
     if (Number.isFinite(priceMax) && price > priceMax || Number.isFinite(priceMin) && price < priceMin) {
         return {

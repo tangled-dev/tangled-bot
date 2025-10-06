@@ -15,10 +15,19 @@ export class BotStrategy {
         this.lastRunStatus    = strategy.last_run_status;
         this.waitTime         = 1;
         this.symbolConfig     = config.EXCHANGE_CONFIG[this.symbol.toLowerCase()];
+        this.externalPriceSource = undefined;
     }
 
     setWaitTime(waitTime) {
         this.waitTime = waitTime;
+    }
+
+    setExternalPriceSource(externalPriceSource) {
+        this.externalPriceSource = externalPriceSource;
+    }
+
+    getExternalPrice(source, ticker) {
+        return this.externalPriceSource?.[source]?.[ticker.toLowerCase()];
     }
 
     _getAmount() {

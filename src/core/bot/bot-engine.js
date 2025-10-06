@@ -8,6 +8,7 @@ import logger from '../logger';
 import {logError} from './strategy/utils';
 import _ from 'lodash';
 import {BotStrategySpread} from './strategy/bot-strategy-spread';
+import FiatleakApi from '../../api/fiatleak-api';
 
 
 class BotEngine {
@@ -31,12 +32,33 @@ class BotEngine {
         'tangled' : [BotEngine.MLX_USDC]
     };
 
+    static EXTERNAL_PRICE = {
+        fiatleak: {}
+    };
+
     constructor() {
         this.initialized         = false;
         this.orderBooks          = {};
         this.onOrderBookCallback = {};
         this._initializeExchangeSymbolsValues(this.orderBooks, undefined);
         this._initializeExchangeSymbolsValues(this.onOrderBookCallback, []);
+        this._updateExternalPriceSources();
+    }
+
+    _updateExternalPriceSources() {
+        _.keys(BotEngine.EXTERNAL_PRICE).forEach((source) => {
+            if (source === 'fiatleak') {
+                _.each(BotEngine.SUPPORTED_TRADING_PAIRS_BY_EXCHANGE.fiatleak, async (tradingPair) => {
+                    const response = await FiatleakApi.getPrice(tradingPair);
+                    let price = undefined;
+                    if(response.message === 'success') {
+                        price = response.data.price;
+                    }
+                    BotEngine.EXTERNAL_PRICE.fiatleak[tradingPair] = price;
+                });
+            }
+        });
+        setTimeout(()=>this._updateExternalPriceSources(), 30000);
     }
 
     _initializeExchangeSymbolsValues(ref, value) {
@@ -88,7 +110,7 @@ class BotEngine {
         if (!strategy) {
             return;
         }
-        const taskId = `bot-strategy-${strategy.strategy_id}`;
+        const taskId          = `bot-strategy-${strategy.strategy_id}`;
         let waitTime;
         let botStrategy;
         strategy.extra_config = JSON.parse(strategy.extra_config);
@@ -97,12 +119,12 @@ class BotEngine {
             botStrategy = new BotStrategyConstant(strategy, strategy.symbol, strategy.order_ttl);
         }
         else if (strategy.strategy_type === 'strategy-price-change') {
-            waitTime          = strategy.extra_config.time_frame;
-            botStrategy       = new BotStrategyPriceChange(strategy, strategy.symbol, strategy.extra_config.price_change_percentage, strategy.order_ttl);
+            waitTime    = strategy.extra_config.time_frame;
+            botStrategy = new BotStrategyPriceChange(strategy, strategy.symbol, strategy.extra_config.price_change_percentage, strategy.order_ttl);
             this.onOrderBookCallback[strategy.exchange_id][strategy.symbol].push(orderBook => botStrategy.setLastPrice(orderBook));
         }
         else if (strategy.strategy_type === 'strategy-spread') {
-            waitTime          = strategy.extra_config.time_frequency;
+            waitTime = strategy.extra_config.time_frequency;
             try {
                 const spreadPercentageFrom = parseFloat(strategy.extra_config.spread_percentage_begin);
                 const spreadPercentageTo   = parseFloat(strategy.extra_config.spread_percentage_end);
@@ -122,6 +144,7 @@ class BotEngine {
         }
 
         botStrategy.setWaitTime(waitTime);
+        botStrategy.setExternalPriceSource(BotEngine.EXTERNAL_PRICE);
 
         task.scheduleTask(taskId, async() => {
             const orderBook = this.orderBooks[strategy.exchange_id][strategy.symbol];

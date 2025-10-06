@@ -23,13 +23,15 @@ export class BotStrategySpread extends BotStrategy {
                 action: 'bid',
                 ...getSpreadOrderAmountAndPrice(orderBook.askPrices[0], orderBook.bidPrices[0],
                     this.spreadPercentageFrom, this.spreadPercentageTo,
-                    this._getAmount(), this.strategy.price_min, this.strategy.price_max, true, pricePrecision)
+                    this._getAmount(), this.strategy.price_min, this.strategy.price_max, true, pricePrecision,
+                    this.strategy.extra_config.price_source, this.getExternalPrice(this.strategy.extra_config.price_source, this.strategy.symbol))
             };
             const askOrder = {
                 action: 'ask',
                 ...getSpreadOrderAmountAndPrice(orderBook.askPrices[0], orderBook.bidPrices[0],
                     this.spreadPercentageFrom, this.spreadPercentageTo,
-                    this._getAmount(), this.strategy.price_min, this.strategy.price_max, false, pricePrecision)
+                    this._getAmount(), this.strategy.price_min, this.strategy.price_max, false, pricePrecision,
+                    this.strategy.extra_config.price_source, this.getExternalPrice(this.strategy.extra_config.price_source, this.strategy.symbol))
             };
 
             if (!bidOrder.price || !askOrder.price) {
@@ -46,7 +48,8 @@ export class BotStrategySpread extends BotStrategy {
                 action,
                 ...getSpreadOrderAmountAndPrice(orderBook.askPrices[0], orderBook.bidPrices[0],
                     this.spreadPercentageFrom, this.spreadPercentageTo,
-                    this._getAmount(), this.strategy.price_min, this.strategy.price_max, action === 'bid', pricePrecision)
+                    this._getAmount(), this.strategy.price_min, this.strategy.price_max, action === 'bid', pricePrecision,
+                    this.strategy.extra_config.price_source, this.getExternalPrice(this.strategy.extra_config.price_source, this.strategy.symbol))
             };
 
             return !order.price ? [] : [order];
