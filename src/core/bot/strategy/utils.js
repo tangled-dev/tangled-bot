@@ -38,9 +38,6 @@ export const getSpreadOrderAmountAndPrice = (askPrice, bidPrice, spreadPercentag
         }
 
         price                  = parseFloat(((askPrice + bidPrice) / 2).toFixed(pricePrecision));
-        const spreadPercentage = getRandomFloatInclusive(spreadPercentageFrom, spreadPercentageTo, 2) / 2;
-
-        price = parseFloat((isBid ? (price - price * spreadPercentage / 100) : (price + price * spreadPercentage / 100)).toFixed(pricePrecision));
     }
     else if (priceSource === 'fiatleak') {
         price = parseFloat(externalPrice.toFixed(pricePrecision));
@@ -51,6 +48,10 @@ export const getSpreadOrderAmountAndPrice = (askPrice, bidPrice, spreadPercentag
             size : amount
         };
     }
+
+    const spreadPercentage = getRandomFloatInclusive(spreadPercentageFrom, spreadPercentageTo, 2) / 2;
+
+    price = parseFloat((isBid ? (price - price * spreadPercentage / 100) : (price + price * spreadPercentage / 100)).toFixed(pricePrecision));
 
     if (Number.isFinite(priceMax) && price > priceMax || Number.isFinite(priceMin) && price < priceMin) {
         return {
