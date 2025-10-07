@@ -1,6 +1,6 @@
 import ExchangeApi from '../../../api/exchange-api';
 import database from '../../../database/database';
-import {getActionFromOrderType, getOrderAmountAndMarginPrice, getOrderAmountAndPrice, logError} from './utils';
+import {getActionFromOrderType, getOrderAmountAndMarginPrice, getOrderAmountAndPrice, getRandomFloatInclusive, logError} from './utils';
 import {BotStrategy} from './bot-strategy';
 import config from '../../../config/config';
 import async from 'async';
@@ -17,10 +17,16 @@ export class BotStrategyConstant extends BotStrategy {
         const action    = getActionFromOrderType(orderType);
         if (action === 'ab' || action === 'ba') {
 
-            const isBidAsk = action === 'ba';
+            const isBidAsk          = action === 'ba';
+            const orderBookAskPrice = orderBook.askPrices[0];
+            const orderBookBidPrice = orderBook.bidPrices[0];
+            const price1            = getRandomFloatInclusive(orderBookBidPrice, orderBookAskPrice, pricePrecision);
+            const price2            = getRandomFloatInclusive(orderBookBidPrice, orderBookAskPrice, pricePrecision);
+            const bidPrice          = Math.min(price1, price2);
+            const askPrice          = Math.max(price1, price2);
 
-            const order = isBidAsk ? getOrderAmountAndMarginPrice(orderBook.askPrices[0], orderBook.bidPrices[0], this._getAmount(), this.strategy.price_min, this.strategy.price_max, true, pricePrecision) :
-                          getOrderAmountAndMarginPrice(orderBook.askPrices[0], orderBook.bidPrices[0], this._getAmount(), this.strategy.price_min, this.strategy.price_max, false, pricePrecision);
+            const order = isBidAsk ? getOrderAmountAndMarginPrice(askPrice, bidPrice, this._getAmount(), this.strategy.price_min, this.strategy.price_max, true, pricePrecision) :
+                          getOrderAmountAndMarginPrice(askPrice, bidPrice, this._getAmount(), this.strategy.price_min, this.strategy.price_max, false, pricePrecision);
 
             const bidOrder = {
                 ...order,
