@@ -117,7 +117,7 @@ export class BotStrategySpread extends BotStrategy {
                             if (!order) {
                                 throw Error(`order_not_found: ${this.strategy.exchange_id}-${mOrder.order_id}`);
                             }
-                            return exchangeApi.cancelOrder(order.symbol, order.order_id)
+                            return exchangeApi.cancelOrder(order.symbol, order.order_number)
                                               .then(() => orderRepository.upsert(order.exchange_id, order.order_number, order.price, order.order_size, order.order_filled, order.state, order.action, order.order_type, order.symbol, order.timestamp, order.order_ttl, 2));
                         }).catch(e => logError(this.logger, e)).then(() => reject());
                     }

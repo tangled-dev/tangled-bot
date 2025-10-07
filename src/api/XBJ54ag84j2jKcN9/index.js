@@ -37,7 +37,6 @@ class _XBJ54ag84j2jKcN9 extends Endpoint {
                            state.activeOrders || []
                        ])))
                        .then(([managedOrders, activeOrders]) => {
-                           managedOrders = [{order_number: 9405210}];
                            if (managedOrders.length === 0 || activeOrders.length === 0) {
                                return;
                            }
