@@ -31,7 +31,7 @@ export class BotStrategy {
     }
 
     shouldTryRun() {
-        const runProbability = this.strategy.extra_config.run_propability;
+        const runProbability = this.strategy.extra_config.run_probability;
         if (runProbability === undefined || !Number.isFinite(runProbability)) {
             return true;
         }
