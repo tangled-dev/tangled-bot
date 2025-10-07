@@ -79,6 +79,13 @@ export class BotStrategySpread extends BotStrategy {
             return;
         }
 
+        if (!this.shouldTryRun()) {
+            // skip this execution
+            this.lastRunTimestamp = Math.floor(Date.now() / 1000);
+            this.running          = false;
+            return;
+        }
+
         const orders = this._getOrders(orderBook, symbolConfig.order_price_float_precision);
 
         const usedBudget = (this.strategy.amount_traded || 0) + orders.reduce((amount, o) => o.size + amount, 0);

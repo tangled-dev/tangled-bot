@@ -68,6 +68,12 @@ export class BotStrategyConstant extends BotStrategy {
             return;
         }
 
+        if (!this.shouldTryRun()) {
+            // skip this execution
+            this.lastRunTimestamp = Math.floor(Date.now() / 1000);
+            return;
+        }
+
         const symbolConfig = config.EXCHANGE_CONFIG[this.symbol.toLowerCase()];
         if (!symbolConfig) {
             return;
