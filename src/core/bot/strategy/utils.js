@@ -39,7 +39,7 @@ export const getSpreadOrderAmountAndPrice = (askPrice, bidPrice, spreadPercentag
 
         price                  = parseFloat(((askPrice + bidPrice) / 2).toFixed(pricePrecision));
     }
-    else if (priceSource === 'fiatleak') {
+    else if (priceSource === 'fiatleak' && Number.isFinite(externalPrice)) {
         price = parseFloat(externalPrice.toFixed(pricePrecision));
     }
     else {
