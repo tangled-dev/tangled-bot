@@ -48,17 +48,25 @@ class BotEngine {
     _updateExternalPriceSources() {
         _.keys(BotEngine.EXTERNAL_PRICE).forEach((source) => {
             if (source === 'fiatleak') {
-                _.each(BotEngine.SUPPORTED_TRADING_PAIRS_BY_EXCHANGE.fiatleak, async (tradingPair) => {
-                    const response = await FiatleakApi.getPrice(tradingPair);
-                    let price = undefined;
-                    if(response.message === 'success') {
-                        price = response.data.price;
+                _.each(BotEngine.SUPPORTED_TRADING_PAIRS_BY_EXCHANGE.fiatleak, async(tradingPair) => {
+                    try {
+                        const response = await FiatleakApi.getPrice(tradingPair);
+                        let price      = undefined;
+                        if (response.message === 'success') {
+                            price = response.data.price;
+                        } else {
+                            logError(`Error fetching price for ${tradingPair} - response: ${JSON.stringify(response)}`);
+                        }
+                        BotEngine.EXTERNAL_PRICE.fiatleak[tradingPair] = price;
                     }
-                    BotEngine.EXTERNAL_PRICE.fiatleak[tradingPair] = price;
+                    catch (e) {
+                        logError(this.logger,`Error fetching price for ${tradingPair} - error: ${e}`);
+                        BotEngine.EXTERNAL_PRICE.fiatleak[tradingPair] = undefined;
+                    }
                 });
             }
         });
-        setTimeout(()=>this._updateExternalPriceSources(), 30000);
+        setTimeout(() => this._updateExternalPriceSources(), 30000);
     }
 
     _initializeExchangeSymbolsValues(ref, value) {
@@ -91,7 +99,7 @@ class BotEngine {
                                   this.onOrderBookCallback[exchange][symbol] = [];
                               }
                           })
-                          .catch(e => logError(this.logger, e));
+                          .catch(_ => _);
     }
 
     initialize() {
