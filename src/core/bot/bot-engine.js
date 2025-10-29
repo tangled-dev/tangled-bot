@@ -54,13 +54,14 @@ class BotEngine {
                         let price      = undefined;
                         if (response.message === 'success') {
                             price = response.data.price;
-                        } else {
+                        }
+                        else {
                             logError(`Error fetching price for ${tradingPair} - response: ${JSON.stringify(response)}`);
                         }
                         BotEngine.EXTERNAL_PRICE.fiatleak[tradingPair] = price;
                     }
                     catch (e) {
-                        logError(this.logger,`Error fetching price for ${tradingPair} - error: ${e}`);
+                        logError(this.logger, `Error fetching price for ${tradingPair} - error: ${e}`);
                         BotEngine.EXTERNAL_PRICE.fiatleak[tradingPair] = undefined;
                     }
                 });
@@ -185,8 +186,11 @@ class BotEngine {
                                                          .then(() => {
                                                              return orderRepository.upsert(order.exchange_id, order.order_number, order.price, order.order_size, order.order_filled, order.state, order.action, order.order_type, order.symbol, order.timestamp, order.order_ttl, 2);
                                                          })
-                                                         .catch(e => logError(this.logger, e))
-                                                         .then(() => callback());
+                                                         .catch(error => logError(this.logger, {
+                                                             ctx: 'orderExpireTask',
+                                                             error
+                                                         }));
+                                              setTimeout(() => callback(), 250);
                                           }
                                           else {
                                               callback();
