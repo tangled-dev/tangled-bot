@@ -190,7 +190,7 @@ class BotEngine {
                                                              ctx: 'orderExpireTask',
                                                              error
                                                          })));
-                                              setTimeout(() => callback(), 250);
+                                              setTimeout(() => callback(), 10);
                                           }
                                           else {
                                               callback();
