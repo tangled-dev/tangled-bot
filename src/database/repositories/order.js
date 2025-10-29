@@ -42,11 +42,11 @@ export default class Order {
                                                       symbol,
                                                       timestamp, order_ttl,
                                                       status)
-                               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?,
-                                       ?, ?, ?,
-                                       ?) ON CONFLICT(exchange_id, order_number) DO
+                               VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9,
+                                       ?10, ?11, ?12,
+                                       ?13) ON CONFLICT(exchange_id, order_number) DO
             UPDATE
-                SET price = excluded.price, order_size = excluded.order_size, order_filled = excluded.order_filled, state = excluded.state, order_ttl = excluded.order_ttl, status = excluded.status`, [
+                SET price = ?4, order_size = ?5, order_filled = ?6, state = ?7, order_ttl = ?12, status = ?13`, [
                 Database.generateID(16),
                 exchangeId,
                 orderNumber,
@@ -62,7 +62,6 @@ export default class Order {
                 status || 1
             ], (err) => {
                 if (err) {
-                    console.log(err);
                     reject(err);
                 }
                 else {

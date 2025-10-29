@@ -186,10 +186,10 @@ class BotEngine {
                                                          .then(() => {
                                                              return orderRepository.upsert(order.exchange_id, order.order_number, order.price, order.order_size, order.order_filled, order.state, order.action, order.order_type, order.symbol, order.timestamp, order.order_ttl, 2);
                                                          })
-                                                         .catch(error => logError(this.logger, {
+                                                         .catch(error => logError(this.logger, JSON.stringify({
                                                              ctx: 'orderExpireTask',
                                                              error
-                                                         }));
+                                                         })));
                                               setTimeout(() => callback(), 250);
                                           }
                                           else {
