@@ -100,7 +100,7 @@ export class BotStrategyConstant extends BotStrategy {
 
         const usedBudget = (this.strategy.amount_traded || 0) + orders.reduce((amount, o) => o.size + amount, 0);
 
-        if (orders.length === 0 || usedBudget > this.strategy.total_budget || true) {
+        if (orders.length === 0 || usedBudget > this.strategy.total_budget) {
             this.running = false;
             return this.updateStrategyRunTimestamp();
         }
