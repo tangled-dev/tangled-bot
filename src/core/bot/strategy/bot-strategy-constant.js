@@ -17,15 +17,21 @@ export class BotStrategyConstant extends BotStrategy {
         const action    = getActionFromOrderType(orderType);
         if (action === 'ab' || action === 'ba') {
 
-            const isBidAsk          = action === 'ba';
-            const orderBookAskPrice = orderBook.askPrices[0];
-            const orderBookBidPrice = orderBook.bidPrices[0];
-            const price1            = getRandomFloatInclusive(orderBookBidPrice, orderBookAskPrice, pricePrecision);
-            const price2            = getRandomFloatInclusive(orderBookBidPrice, orderBookAskPrice, pricePrecision);
-            const bidPrice          = Math.min(price1, price2) + getPriceTick(pricePrecision);
-            const askPrice          = Math.max(price1, price2) - getPriceTick(pricePrecision);
+            const isBidAsk               = action === 'ba';
+            const orderBookAskPrice      = orderBook.askPrices[0];
+            const orderBookBidPrice      = orderBook.bidPrices[0];
+            const orderBookAskPriceDelta = orderBookAskPrice - getPriceTick(pricePrecision);
+            const orderBookBidPriceDelta = orderBookBidPrice + getPriceTick(pricePrecision);
+            const price1                 = getRandomFloatInclusive(orderBookBidPriceDelta, orderBookAskPriceDelta, pricePrecision);
+            const price2                 = getRandomFloatInclusive(orderBookBidPriceDelta, orderBookAskPriceDelta, pricePrecision);
+            const bidPrice               = Math.min(price1, price2);
+            const askPrice               = Math.max(price1, price2);
 
             const order = getOrderAmountAndMarginPrice(askPrice, bidPrice, this._getAmount(), this.strategy.price_min, this.strategy.price_max, isBidAsk, pricePrecision, true);
+
+            if (order.price >= orderBookAskPrice || order.price <= orderBookBidPrice) {
+                return [];
+            }
 
             const bidOrder = {
                 ...order,
@@ -94,7 +100,7 @@ export class BotStrategyConstant extends BotStrategy {
 
         const usedBudget = (this.strategy.amount_traded || 0) + orders.reduce((amount, o) => o.size + amount, 0);
 
-        if (orders.length === 0 || usedBudget > this.strategy.total_budget) {
+        if (orders.length === 0 || usedBudget > this.strategy.total_budget || true) {
             this.running = false;
             return this.updateStrategyRunTimestamp();
         }
