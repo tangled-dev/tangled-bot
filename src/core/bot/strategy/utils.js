@@ -37,7 +37,7 @@ export const getSpreadOrderAmountAndPrice = (askPrice, bidPrice, spreadPercentag
             bidPrice = askPrice;
         }
 
-        price                  = parseFloat(((askPrice + bidPrice) / 2).toFixed(pricePrecision));
+        price = parseFloat(((askPrice + bidPrice) / 2).toFixed(pricePrecision));
     }
     else if (priceSource === 'fiatleak' && Number.isFinite(externalPrice)) {
         price = parseFloat(externalPrice.toFixed(pricePrecision));
@@ -66,8 +66,11 @@ export const getSpreadOrderAmountAndPrice = (askPrice, bidPrice, spreadPercentag
     };
 };
 
-export const getOrderAmountAndMarginPrice = (askPrice, bidPrice, amount, priceMin, priceMax, isBid, pricePrecision) => {
-    const delta = 1 / Math.pow(10, pricePrecision);
+export const getPriceTick                 = (pricePrecision) => {
+    return 1 / Math.pow(10, pricePrecision);
+};
+export const getOrderAmountAndMarginPrice = (askPrice, bidPrice, amount, priceMin, priceMax, isBid, pricePrecision, skipDelta) => {
+    const delta = skipDelta === true ? 0 : getPriceTick(pricePrecision);
     let price   = parseFloat(isBid ? (bidPrice + delta).toFixed(pricePrecision) : (askPrice - delta).toFixed(pricePrecision));
     if (isBid) {
         if (price >= askPrice) {

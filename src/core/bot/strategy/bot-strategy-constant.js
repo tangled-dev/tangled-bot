@@ -1,6 +1,6 @@
 import ExchangeApi from '../../../api/exchange-api';
 import database from '../../../database/database';
-import {getActionFromOrderType, getOrderAmountAndMarginPrice, getOrderAmountAndPrice, getRandomFloatInclusive, logError} from './utils';
+import {getActionFromOrderType, getOrderAmountAndMarginPrice, getOrderAmountAndPrice, getPriceTick, getRandomFloatInclusive, logError} from './utils';
 import {BotStrategy} from './bot-strategy';
 import config from '../../../config/config';
 import async from 'async';
@@ -22,11 +22,10 @@ export class BotStrategyConstant extends BotStrategy {
             const orderBookBidPrice = orderBook.bidPrices[0];
             const price1            = getRandomFloatInclusive(orderBookBidPrice, orderBookAskPrice, pricePrecision);
             const price2            = getRandomFloatInclusive(orderBookBidPrice, orderBookAskPrice, pricePrecision);
-            const bidPrice          = Math.min(price1, price2);
-            const askPrice          = Math.max(price1, price2);
+            const bidPrice          = Math.min(price1, price2) + getPriceTick(pricePrecision);
+            const askPrice          = Math.max(price1, price2) - getPriceTick(pricePrecision);
 
-            const order = isBidAsk ? getOrderAmountAndMarginPrice(askPrice, bidPrice, this._getAmount(), this.strategy.price_min, this.strategy.price_max, true, pricePrecision) :
-                          getOrderAmountAndMarginPrice(askPrice, bidPrice, this._getAmount(), this.strategy.price_min, this.strategy.price_max, false, pricePrecision);
+            const order = getOrderAmountAndMarginPrice(askPrice, bidPrice, this._getAmount(), this.strategy.price_min, this.strategy.price_max, isBidAsk, pricePrecision, true);
 
             const bidOrder = {
                 ...order,
