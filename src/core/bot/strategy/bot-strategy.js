@@ -36,7 +36,7 @@ export class BotStrategy {
             return true;
         }
 
-        return Math.random() <= runProbability / 100.
+        return Math.random() <= runProbability / 100.;
     }
 
     _getAmount() {
@@ -58,4 +58,25 @@ export class BotStrategy {
             last_run_status   : this.lastRunStatus
         }).then(_ => _).catch(_ => _);
     }
+
+    fetchLastRunTimestampAndUpdateState() {
+        const strategyRepository = database.getRepository('strategy');
+        return strategyRepository.get({strategy_id: this.strategy.strategy_id})
+                                 .then(strategy => {
+                                     if (strategy) {
+                                         this.lastRunTimestamp = strategy.last_run_timestamp;
+                                         this.lastRunStatus    = strategy.last_run_status;
+                                     }
+                                     else {
+                                         this.lastRunTimestamp = Math.floor(Date.now() / 1000) - strategy.waitTime;
+                                         this.lastRunStatus    = 1;
+                                     }
+                                 })
+                                 .then(() => strategyRepository.upsert({
+                                     strategy_id       : this.strategy.strategy_id,
+                                     last_run_timestamp: this.lastRunTimestamp,
+                                     last_run_status   : this.lastRunStatus
+                                 })).then(_ => _).catch(_ => _);
+    }
+
 }

@@ -22,7 +22,7 @@ export class BotStrategyPriceChange extends BotStrategy {
     run(orderBook) {
 
         if (!this.lastRunTimestamp) {
-            return this.updateStrategyRunTimestamp();
+            return this.fetchLastRunTimestampAndUpdateState();
         }
         else if (this.lastRunTimestamp + this.waitTime > Math.floor(Date.now() / 1000) ) {
             return;
