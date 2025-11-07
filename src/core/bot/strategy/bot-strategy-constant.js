@@ -17,11 +17,17 @@ export class BotStrategyConstant extends BotStrategy {
         const action    = getActionFromOrderType(orderType);
         if (action === 'ab' || action === 'ba') {
 
-            const isBidAsk               = action === 'ba';
-            const orderBookAskPrice      = orderBook.askPrices[0];
-            const orderBookBidPrice      = orderBook.bidPrices[0];
-            const orderBookAskPriceDelta = orderBookAskPrice - getPriceTick(pricePrecision);
-            const orderBookBidPriceDelta = orderBookBidPrice + getPriceTick(pricePrecision);
+            const isBidAsk          = action === 'ba';
+            const priceTick         = getPriceTick(pricePrecision);
+            const orderBookAskPrice = orderBook.askPrices[0];
+            const orderBookBidPrice = orderBook.bidPrices[0];
+
+            if (orderBookAskPrice - orderBookBidPrice <= priceTick) { // cant self-trade in the spread
+                return [];
+            }
+
+            const orderBookAskPriceDelta = orderBookAskPrice - priceTick;
+            const orderBookBidPriceDelta = orderBookBidPrice + priceTick;
             const price1                 = getRandomFloatInclusive(orderBookBidPriceDelta, orderBookAskPriceDelta, pricePrecision);
             const price2                 = getRandomFloatInclusive(orderBookBidPriceDelta, orderBookAskPriceDelta, pricePrecision);
             const bidPrice               = Math.min(price1, price2);
