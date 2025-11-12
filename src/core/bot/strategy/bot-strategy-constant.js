@@ -81,7 +81,7 @@ export class BotStrategyConstant extends BotStrategy {
         if (!this.lastRunTimestamp) {
             return this.fetchLastRunTimestampAndUpdateState();
         }
-        else if (this.lastRunTimestamp + this.waitTime > Math.floor(Date.now() / 1000)) {
+        else if (this.running || this.lastRunTimestamp + this.waitTime > Math.floor(Date.now() / 1000)) {
             return;
         }
 
@@ -102,13 +102,18 @@ export class BotStrategyConstant extends BotStrategy {
             return;
         }
 
+        this.running = true;
+
         const orders = this._getOrders(orderBook, symbolConfig.order_price_float_precision);
 
         const usedBudget = (this.strategy.amount_traded || 0) + orders.reduce((amount, o) => o.size + amount, 0);
 
         if (orders.length === 0 || usedBudget > this.strategy.total_budget) {
-            this.running = false;
-            return this.updateStrategyRunTimestamp();
+            return this.updateStrategyRunTimestamp()
+                       .catch(_ => _)
+                       .then(() => {
+                           this.running = false;
+                       });
         }
 
         this.strategy.amount_traded = usedBudget;
@@ -149,6 +154,7 @@ export class BotStrategyConstant extends BotStrategy {
             });
         }).catch(() => {
             //logError(this.logger, e);
+            this.running          = false;
             this.lastRunTimestamp = Math.floor(Date.now() / 1000);
             this.lastRunStatus    = 0;
         })
