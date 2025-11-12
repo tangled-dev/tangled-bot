@@ -125,7 +125,7 @@ export class BotStrategyConstant extends BotStrategy {
                                let success = mOrder.status;
                                if (success) {
                                    insertedOrders.push(mOrder);
-                                   orderRepository.upsert(this.strategy.exchange_id, mOrder.order_id, order.price, order.size, 0, 'ACTIVE', order.action.toUpperCase(), 'GTC', this.symbol.toUpperCase(), Math.floor(Date.now() / 1000), this.orderTTL)
+                                   orderRepository.upsert(this.strategy.exchange_id, mOrder.order_id, order.price, order.size, 0, 'ACTIVE', order.action.toUpperCase(), 'GTC', this.symbol.toUpperCase(), Math.floor(Date.now() / 1000), this.orderTTL, orders.length > 1 ? 2 : 1)
                                                   .then(_ => _).catch(_ => _);
                                }
                                callback(!success ? true : null);
@@ -135,16 +135,8 @@ export class BotStrategyConstant extends BotStrategy {
                     if (insertedOrders.length === 1) {
                         // cancel the order that was inserted
                         const mOrder = insertedOrders[0];
-                        return orderRepository.get({
-                            exchange_id : this.strategy.exchange_id,
-                            order_number: mOrder.order_id
-                        }).then(order => {
-                            if (!order) {
-                                throw Error(`order_not_found: ${this.strategy.exchange_id}-${mOrder.order_id}`);
-                            }
-                            return exchangeApi.cancelOrder(order.symbol, order.order_number)
-                                              .then(() => orderRepository.upsert(order.exchange_id, order.order_number, order.price, order.order_size, order.order_filled, order.state, order.action, order.order_type, order.symbol, order.timestamp, order.order_ttl, 2));
-                        }).catch(e => logError(this.logger, e)).then(() => reject());
+                        return exchangeApi.cancelOrder(mOrder.symbol, mOrder.order_id)
+                                          .catch(e => logError(this.logger, e)).then(() => reject());
                     }
 
                     return reject();

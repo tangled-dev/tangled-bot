@@ -181,16 +181,24 @@ class BotEngine {
                                       async.eachSeries(orders, (order, callback) => {
                                           const now = Math.floor(Date.now() / 1000);
                                           if (order.timestamp + order.order_ttl < now) {
+                                              let callbackCalled = false;
+                                              const triggerCallback = () => {
+                                                  if(!callbackCalled) {
+                                                      callbackCalled = true;
+                                                      callback();
+                                                  }
+                                              }
                                               ExchangeApi.get(order.exchange_id)
                                                          .cancelOrder(order.symbol, order.order_number)
                                                          .then(() => {
+                                                             triggerCallback()
                                                              return orderRepository.upsert(order.exchange_id, order.order_number, order.price, order.order_size, order.order_filled, order.state, order.action, order.order_type, order.symbol, order.timestamp, order.order_ttl, 2);
                                                          })
                                                          .catch(error => logError(this.logger, JSON.stringify({
                                                              ctx: 'orderExpireTask',
                                                              error
                                                          })));
-                                              setTimeout(() => callback(), 10);
+                                              setTimeout(() => triggerCallback(), 250);
                                           }
                                           else {
                                               callback();
@@ -198,6 +206,37 @@ class BotEngine {
                                       }, () => resolve());
                                   });
                               });
+    }
+
+    removeExchangeUnmanagedOrderTask(exchange) {
+        const orderRepository = database.getRepository('order');
+        const exchangeApi     = ExchangeApi.get(exchange);
+        return exchangeApi.getState().then(state => state.activeOrders)
+                          .then(orders => {
+                              return new Promise(resolve => {
+                                  async.eachSeries(orders, (order, callback) => {
+                                      orderRepository.get({
+                                          exchange_id : exchange,
+                                          order_number: order.orderId,
+                                          status      : 2
+                                      }).catch(_ => _).then(dbOrder => {
+                                          if (dbOrder) {
+                                              let callbackCalled = false;
+                                              const triggerCallback = () => {
+                                                  if(!callbackCalled) {
+                                                      callbackCalled = true;
+                                                      callback();
+                                                  }
+                                              }
+                                              exchangeApi.cancelOrder(order.symbol, order.order_id).catch(_ => _).then(() => triggerCallback());
+                                              setTimeout(() => triggerCallback(), 250);
+                                          } else {
+                                              callback();
+                                          }
+                                      });
+                                  }, () => resolve());
+                              });
+                          });
     }
 
     registerTask() {
@@ -212,6 +251,8 @@ class BotEngine {
         }).then(() => {
             this._applyExchangeSymbols((exchange, symbol) => task.scheduleTask(`get_order_book_${exchange}_${symbol}`, this.fetchOrderBookTask.bind(this, exchange, symbol), 1000, true));
             task.scheduleTask('expire_orders', this.orderExpireTask.bind(this), 1000, true);
+            task.scheduleTask('remove_exchange_unmanaged_order_task', this.removeExchangeUnmanagedOrderTask.bind(this, 'fiatleak'), 5000, true);
+            task.scheduleTask('remove_exchange_unmanaged_order_task', this.removeExchangeUnmanagedOrderTask.bind(this, 'tangled'), 5000, true);
 
             const strategyRepository = database.getRepository('strategy');
             strategyRepository.list({'status': 1})
