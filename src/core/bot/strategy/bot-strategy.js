@@ -63,7 +63,7 @@ export class BotStrategy {
         const strategyRepository = database.getRepository('strategy');
         return strategyRepository.get({strategy_id: this.strategy.strategy_id})
                                  .then(strategy => {
-                                     if (strategy) {
+                                     if (strategy && !!strategy.last_run_timestamp) {
                                          this.lastRunTimestamp = strategy.last_run_timestamp;
                                          this.lastRunStatus    = strategy.last_run_status;
                                      }
