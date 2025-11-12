@@ -114,7 +114,7 @@ export const NODE_CERTIFICATE_PATH     = DATA_BASE_DIR + '/node_certificate.pem'
 if (DATABASE_ENGINE === 'sqlite') {
     DATABASE_CONNECTION.FOLDER               = DATA_BASE_DIR + '/';
     DATABASE_CONNECTION.FILENAME_TANGLED_BOT = 'tangled-bot.sqlite';
-    DATABASE_CONNECTION.SCHEMA_VERSION       = '2';
+    DATABASE_CONNECTION.SCHEMA_VERSION       = '3';
 }
 
 export default {

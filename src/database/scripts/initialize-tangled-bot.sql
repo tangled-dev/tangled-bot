@@ -66,6 +66,7 @@ CREATE TABLE `order`
     UNIQUE (exchange_id, order_number)
 );
 CREATE INDEX idx_order_exchange_create_date ON `order` (create_date);
+CREATE INDEX idx_order_status ON `order` (status);
 
 CREATE TABLE normalization
 (
@@ -106,6 +107,6 @@ INSERT INTO normalization (normalization_name, normalization_id)
 VALUES ('fiatleak_exchange_api_key', 'AEK83XHR6');
 
 INSERT INTO schema_information (key, value)
-VALUES ("version", "2");
+VALUES ("version", "3");
 
 COMMIT;
