@@ -228,7 +228,7 @@ class BotEngine {
                                                       callback();
                                                   }
                                               }
-                                              exchangeApi.cancelOrder(order.symbol, order.order_id).catch(_ => _).then(() => triggerCallback());
+                                              exchangeApi.cancelOrder(order.symbol, order.orderId).catch(_ => _).then(() => triggerCallback());
                                               setTimeout(() => triggerCallback(), 250);
                                           } else {
                                               callback();
@@ -251,8 +251,8 @@ class BotEngine {
         }).then(() => {
             this._applyExchangeSymbols((exchange, symbol) => task.scheduleTask(`get_order_book_${exchange}_${symbol}`, this.fetchOrderBookTask.bind(this, exchange, symbol), 1000, true));
             task.scheduleTask('expire_orders', this.orderExpireTask.bind(this), 1000, true);
-            task.scheduleTask('remove_exchange_unmanaged_order_task_fiatleak', this.removeExchangeUnmanagedOrderTask.bind(this, 'fiatleak'), 5000, true);
-            task.scheduleTask('remove_exchange_unmanaged_order_task_tangled', this.removeExchangeUnmanagedOrderTask.bind(this, 'tangled'), 5000, true);
+            task.scheduleTask('remove_exchange_unmanaged_order_fiatleak', this.removeExchangeUnmanagedOrderTask.bind(this, 'fiatleak'), 5000, true);
+            task.scheduleTask('remove_exchange_unmanaged_order_tangled', this.removeExchangeUnmanagedOrderTask.bind(this, 'tangled'), 5000, true);
 
             const strategyRepository = database.getRepository('strategy');
             strategyRepository.list({'status': 1})

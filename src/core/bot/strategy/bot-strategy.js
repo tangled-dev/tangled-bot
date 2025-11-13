@@ -68,7 +68,7 @@ export class BotStrategy {
                                          this.lastRunStatus    = strategy.last_run_status;
                                      }
                                      else {
-                                         this.lastRunTimestamp = Math.floor(Date.now() / 1000) - strategy.waitTime;
+                                         this.lastRunTimestamp = Math.floor(Date.now() / 1000) - this.waitTime;
                                          this.lastRunStatus    = 1;
                                      }
                                  })
