@@ -125,7 +125,7 @@ export class BotStrategyConstant extends BotStrategy {
         return new Promise((resolve, reject) => {
             const insertedOrders = [];
             async.eachSeries(orders, (order, callback) => {
-                exchangeApi.insertOrder(this.symbol, order)
+                exchangeApi.insertOrder(this.symbol.toUpperCase(), order)
                            .then(mOrder => {
                                let success = mOrder.status;
                                if (success) {
@@ -140,7 +140,7 @@ export class BotStrategyConstant extends BotStrategy {
                     if (insertedOrders.length === 1) {
                         // cancel the order that was inserted
                         const mOrder = insertedOrders[0];
-                        return exchangeApi.cancelOrder(mOrder.symbol, mOrder.order_id)
+                        return exchangeApi.cancelOrder(this.symbol.toUpperCase(), mOrder.order_id)
                                           .catch(e => logError(this.logger, e)).then(() => reject());
                     }
 
