@@ -32,10 +32,18 @@ export class BotStrategyConstant extends BotStrategy {
             const price2                 = getRandomFloatInclusive(orderBookBidPriceDelta, orderBookAskPriceDelta, pricePrecision);
             const bidPrice               = Math.min(price1, price2);
             const askPrice               = Math.max(price1, price2);
+            const externalPrice          = parseFloat(this.getExternalPrice('fiatleak', this.strategy.symbol).toFixed(pricePrecision));
+            const externalPriceMax       = (externalPrice + externalPrice * 2 / 100);
+            const externalPriceMin       = (externalPrice - externalPrice * 2 / 100);
 
-            const order = getOrderAmountAndMarginPrice(askPrice, bidPrice, this._getAmount(), this.strategy.price_min, this.strategy.price_max, isBidAsk, pricePrecision, true);
+            if ((!this.strategy.price_min || !this.strategy.price_max) && !externalPrice) {
+                return [];
+            }
 
-            if (order.price >= orderBookAskPrice || order.price <= orderBookBidPrice) {
+
+            const order = getOrderAmountAndMarginPrice(askPrice, bidPrice, this._getAmount(), this.strategy.price_min || externalPriceMin, this.strategy.price_max || externalPriceMax, isBidAsk, pricePrecision, true);
+
+            if (!order.price || order.price >= orderBookAskPrice || order.price <= orderBookBidPrice) {
                 return [];
             }
 
@@ -48,10 +56,6 @@ export class BotStrategyConstant extends BotStrategy {
                 ...order,
                 action: 'ask'
             };
-
-            if (!bidOrder.price || !askOrder.price) {
-                return [];
-            }
 
             return isBidAsk ? [
                 bidOrder,

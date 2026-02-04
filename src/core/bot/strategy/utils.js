@@ -82,6 +82,44 @@ export const getOrderAmountAndMarginPrice = (askPrice, bidPrice, amount, priceMi
             price = askPrice;
         }
     }
+
+    if (Number.isFinite(priceMax) && price > priceMax || Number.isFinite(priceMin) && price < priceMin) {
+        price = parseFloat(((bidPrice + askPrice) / 2).toFixed(pricePrecision));
+        if(price <= priceMax && price >= priceMin && price < askPrice && price > bidPrice) {
+            return {
+                price,
+                size: amount
+            };
+        }
+
+        price = parseFloat(((priceMax + priceMin) / 2).toFixed(pricePrecision));
+        if(price <= priceMax && price >= priceMin && price < askPrice && price > bidPrice) {
+            return {
+                price,
+                size: amount
+            };
+        }
+
+        if (isBid) {
+            price = priceMin
+        }
+        else {
+            price = priceMax
+        }
+
+        if(price < askPrice && price > bidPrice) {
+            return {
+                price,
+                size: amount
+            };
+        }
+
+        return {
+            price: undefined,
+            size: amount
+        };
+    }
+
     return {
         price,
         size: amount
