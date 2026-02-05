@@ -33,8 +33,8 @@ export class BotStrategyConstant extends BotStrategy {
             const bidPrice               = Math.min(price1, price2);
             const askPrice               = Math.max(price1, price2);
             const externalPrice          = parseFloat(this.getExternalPrice('fiatleak', this.strategy.symbol).toFixed(pricePrecision));
-            const externalPriceMax       = (externalPrice + externalPrice * 10 / 100);
-            const externalPriceMin       = (externalPrice - externalPrice * 10 / 100);
+            const externalPriceMax       = parseFloat((externalPrice + externalPrice * 10 / 100).toFixed(pricePrecision));
+            const externalPriceMin       = parseFloat((externalPrice - externalPrice * 10 / 100).toFixed(pricePrecision));
 
             if ((!this.strategy.price_min || !this.strategy.price_max) && !externalPrice) {
                 return [];
