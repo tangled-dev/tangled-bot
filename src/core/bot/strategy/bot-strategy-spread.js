@@ -13,7 +13,7 @@ export class BotStrategySpread extends BotStrategy {
         this.spreadPercentageFrom = spreadPercentageFrom;
         this.spreadPercentageTo   = spreadPercentageTo;
         this.running              = false;
-        
+
         this.priceSnapConfig                         = strategy.extra_config.snap_to_price ?
                                                        JSON.parse(strategy.extra_config?.snap_to_price) :
                                                        {enabled: false};

@@ -10,15 +10,17 @@ export class BotStrategyConstant extends BotStrategy {
 
     constructor(strategy, symbol, orderTTL) {
         super(strategy, symbol, orderTTL, 'BotStrategyConstant');
+        this.mutateOrder           = strategy.extra_config.mutate;
+        this.extraMarginPercentage = strategy.extra_config.extra_margin_percentage || 0;
     }
 
     _getOrders(orderBook, pricePrecision) {
-        const orderType = this.strategy.order_type;
+        let orderType   = this.strategy.order_type;
         const action    = getActionFromOrderType(orderType);
+        const priceTick = getPriceTick(pricePrecision);
         if (action === 'ab' || action === 'ba') {
 
             const isBidAsk          = action === 'ba';
-            const priceTick         = getPriceTick(pricePrecision);
             const orderBookAskPrice = orderBook.askPrices[0];
             const orderBookBidPrice = orderBook.bidPrices[0];
 
@@ -66,14 +68,43 @@ export class BotStrategyConstant extends BotStrategy {
             ];
         }
         else {
+            let orderBookAskPrice  = orderBook.askPrices[0];
+            let orderBookBidPrice  = orderBook.bidPrices[0];
+            const externalPrice    = parseFloat(this.getExternalPrice('fiatleak', this.strategy.symbol).toFixed(pricePrecision));
+            const externalPriceMax = parseFloat((externalPrice + externalPrice * 10 / 100).toFixed(pricePrecision));
+            const externalPriceMin = parseFloat((externalPrice - externalPrice * 10 / 100).toFixed(pricePrecision));
+            if (this.mutateOrder && (orderType === 'bid' || orderType === 'ask')) {
+                if (Math.abs(externalPrice - orderBookBidPrice) > Math.abs(externalPrice - orderBookAskPrice)) {
+                    orderType = 'ask';
+                }
+                else {
+                    orderType = 'bid';
+                }
+            }
+
+            if (this.extraMarginPercentage && (orderType === 'bid' || orderType === 'ask')) {
+                if (orderType === 'bid') {
+                    orderBookBidPrice = parseFloat((orderBookBidPrice + orderBookBidPrice * this.extraMarginPercentage / 100).toFixed(pricePrecision));
+                    if (orderBookBidPrice >= orderBookAskPrice) {
+                        orderBookBidPrice = orderBookAskPrice - priceTick;
+                    }
+                }
+                else if (orderType === 'ask') {
+                    orderBookAskPrice = parseFloat((orderBookAskPrice - orderBookAskPrice * this.extraMarginPercentage / 100).toFixed(pricePrecision));
+                    if (orderBookAskPrice <= orderBookBidPrice) {
+                        orderBookAskPrice = orderBookBidPrice + priceTick;
+                    }
+                }
+            }
+
             const order = {
                 action,
                 ...(orderType === 'bid' || orderType === 'ask') ?
-                   getOrderAmountAndMarginPrice(orderBook.askPrices[0], orderBook.bidPrices[0],
-                       this._getAmount(), this.strategy.price_min, this.strategy.price_max, orderType === 'bid', pricePrecision) :
+                   getOrderAmountAndMarginPrice(orderBookAskPrice, orderBookBidPrice,
+                       this._getAmount(), this.strategy.price_min || externalPriceMin, this.strategy.price_max || externalPriceMax, orderType === 'bid', pricePrecision) :
                    getOrderAmountAndPrice(orderType === 'buy' ? orderBook.askPrices : orderBook.bidPrices,
                        orderType === 'buy' ? orderBook.askVolumes : orderBook.bidVolumes,
-                       this._getAmount(), this.strategy.price_min, this.strategy.price_max, pricePrecision)
+                       this._getAmount(), this.strategy.price_min || externalPriceMin, this.strategy.price_max || externalPriceMax, pricePrecision)
             };
 
             return !order.price ? [] : [order];
