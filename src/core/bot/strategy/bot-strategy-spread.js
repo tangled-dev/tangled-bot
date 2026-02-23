@@ -1,6 +1,6 @@
 import ExchangeApi from '../../../api/exchange-api';
 import database from '../../../database/database';
-import {getActionFromOrderType, getSpreadOrderAmountAndPrice, logError} from './utils';
+import {getActionFromOrderType, getPriceTick, getSpreadOrderAmountAndPrice, logError} from './utils';
 import {BotStrategy} from './bot-strategy';
 import async from 'async';
 import config from '../../../config/config';
@@ -13,25 +13,52 @@ export class BotStrategySpread extends BotStrategy {
         this.spreadPercentageFrom = spreadPercentageFrom;
         this.spreadPercentageTo   = spreadPercentageTo;
         this.running              = false;
+        
+        this.priceSnapConfig                         = strategy.extra_config.snap_to_price ?
+                                                       JSON.parse(strategy.extra_config?.snap_to_price) :
+                                                       {enabled: false};
+        this.priceSnapConfig.enabled                 = !!this.priceSnapConfig.enabled;
+        this.priceSnapConfig.duration                = this.priceSnapConfig.duration || 300000;
+        this.priceSnapConfig.probability             = this.priceSnapConfig.probability || 0.5;
+        this.priceSnapConfig.spread_delta_percentage = this.priceSnapConfig.spread_delta_percentage || 1;
     }
 
     _getOrders(orderBook, pricePrecision) {
         const orderType = this.strategy.order_type;
         const action    = getActionFromOrderType(orderType);
         if (action === 'both') {
+            const externalPrice          = this.getExternalPrice(this.strategy.extra_config.price_source, this.strategy.symbol);
+            let bidSpreadPercentageShift = 0;
+            let askSpreadPercentageShift = 0;
+            if (this.priceSnapConfig.enabled) {
+                if (!this.priceSnapNextRun || this.priceSnapNextRun < Date.now()) {
+                    this.priceSnapNextRun = Date.now() + this.priceSnapConfig.duration;
+                    this.priceSnapUp      = Math.random() >= this.priceSnapConfig.probability;
+                }
+
+                if (this.priceSnapUp) {
+                    bidSpreadPercentageShift = -this.spreadPercentageFrom;
+                    askSpreadPercentageShift = this.priceSnapConfig.spread_delta_percentage;
+                }
+                else {
+                    askSpreadPercentageShift = -this.spreadPercentageFrom;
+                    bidSpreadPercentageShift = this.priceSnapConfig.spread_delta_percentage;
+                }
+            }
+
             const bidOrder = {
                 action: 'bid',
                 ...getSpreadOrderAmountAndPrice(orderBook.askPrices[0], orderBook.bidPrices[0],
-                    this.spreadPercentageFrom, this.spreadPercentageTo,
+                    this.spreadPercentageFrom + bidSpreadPercentageShift, this.spreadPercentageTo + bidSpreadPercentageShift,
                     this._getAmount(), this.strategy.price_min, this.strategy.price_max, true, pricePrecision,
-                    this.strategy.extra_config.price_source, this.getExternalPrice(this.strategy.extra_config.price_source, this.strategy.symbol))
+                    this.strategy.extra_config.price_source, externalPrice)
             };
             const askOrder = {
                 action: 'ask',
                 ...getSpreadOrderAmountAndPrice(orderBook.askPrices[0], orderBook.bidPrices[0],
-                    this.spreadPercentageFrom, this.spreadPercentageTo,
+                    this.spreadPercentageFrom + askSpreadPercentageShift, this.spreadPercentageTo + askSpreadPercentageShift,
                     this._getAmount(), this.strategy.price_min, this.strategy.price_max, false, pricePrecision,
-                    this.strategy.extra_config.price_source, this.getExternalPrice(this.strategy.extra_config.price_source, this.strategy.symbol))
+                    this.strategy.extra_config.price_source, externalPrice)
             };
 
             if (!bidOrder.price || !askOrder.price) {
