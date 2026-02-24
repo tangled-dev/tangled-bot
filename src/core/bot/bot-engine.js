@@ -217,10 +217,9 @@ class BotEngine {
                                   async.eachSeries(orders, (order, callback) => {
                                       orderRepository.get({
                                           exchange_id : exchange,
-                                          order_number: order.orderId,
-                                          status      : 2
+                                          order_number: order.orderId
                                       }).catch(_ => _).then(dbOrder => {
-                                          if (dbOrder) {
+                                          if ((!dbOrder && order.timestamp < Date.now() - 60000) || dbOrder?.status === 2) {
                                               let callbackCalled = false;
                                               const triggerCallback = () => {
                                                   if(!callbackCalled) {
