@@ -16,7 +16,7 @@ export class BotStrategyConstant extends BotStrategy {
 
     _getOrders(orderBook, pricePrecision) {
         let orderType   = this.strategy.order_type;
-        const action    = getActionFromOrderType(orderType);
+        let action    = getActionFromOrderType(orderType);
         const priceTick = getPriceTick(pricePrecision);
         if (action === 'ab' || action === 'ba') {
 
@@ -80,6 +80,7 @@ export class BotStrategyConstant extends BotStrategy {
                 else {
                     orderType = 'bid';
                 }
+                action = orderType;
             }
 
             if (this.extraMarginPercentage && (orderType === 'bid' || orderType === 'ask')) {
