@@ -14,9 +14,7 @@ export class BotStrategySpread extends BotStrategy {
         this.spreadPercentageTo   = spreadPercentageTo;
         this.running              = false;
 
-        this.priceSnapConfig                         = strategy.extra_config.snap_to_price ?
-                                                       JSON.parse(strategy.extra_config?.snap_to_price) :
-                                                       {enabled: false};
+        this.priceSnapConfig                         = strategy.extra_config.snap_to_price ?? {enabled: false};
         this.priceSnapConfig.enabled                 = !!this.priceSnapConfig.enabled;
         this.priceSnapConfig.duration                = this.priceSnapConfig.duration || 300000;
         this.priceSnapConfig.probability             = this.priceSnapConfig.probability || 0.5;
