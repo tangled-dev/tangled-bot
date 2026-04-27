@@ -85,13 +85,13 @@ export class BotStrategyConstant extends BotStrategy {
 
             if (this.extraMarginPercentage && (orderType === 'bid' || orderType === 'ask')) {
                 if (orderType === 'bid') {
-                    orderBookBidPrice = parseFloat((orderBookBidPrice + orderBookBidPrice * this.extraMarginPercentage / 100).toFixed(pricePrecision));
+                    orderBookBidPrice = parseFloat((externalPrice + externalPrice * this.extraMarginPercentage / 100).toFixed(pricePrecision));
                     if (orderBookBidPrice >= orderBookAskPrice) {
                         orderBookBidPrice = orderBookAskPrice - priceTick;
                     }
                 }
                 else if (orderType === 'ask') {
-                    orderBookAskPrice = parseFloat((orderBookAskPrice - orderBookAskPrice * this.extraMarginPercentage / 100).toFixed(pricePrecision));
+                    orderBookAskPrice = parseFloat((externalPrice - externalPrice * this.extraMarginPercentage / 100).toFixed(pricePrecision));
                     if (orderBookAskPrice <= orderBookBidPrice) {
                         orderBookAskPrice = orderBookBidPrice + priceTick;
                     }
