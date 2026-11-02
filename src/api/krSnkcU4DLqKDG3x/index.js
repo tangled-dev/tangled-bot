@@ -2,6 +2,19 @@ import Endpoint from '../endpoint';
 import database from '../../database/database';
 
 
+const API_KEY_MASK = '*************************';
+
+// Keeps the first 3 and last 4 characters; short keys are fully masked.
+function maskApiKey(apiKey) {
+    if (!apiKey) {
+        return apiKey;
+    }
+    if (apiKey.length < 12) {
+        return API_KEY_MASK;
+    }
+    return apiKey.substring(0, 3) + API_KEY_MASK + apiKey.substring(apiKey.length - 4);
+}
+
 /**
  * api get_tangled_exchange_api_key
  */
@@ -11,7 +24,7 @@ class _krSnkcU4DLqKDG3x extends Endpoint {
     }
 
     /**
-     * returns returns tangled exchange api key if configured
+     * returns the masked tangled exchange api key if configured
      * @param app
      * @param req (p0<exchange>)
      * @param res
@@ -29,8 +42,11 @@ class _krSnkcU4DLqKDG3x extends Endpoint {
         configRepository.getConfig(`${exchange}_exchange_api_key`)
                         .then(apiKey => {
                             res.send({
-                                api_status              : 'success',
-                                exchange_api_key: apiKey || null
+                                api_status      : 'success',
+                                exchange_api_key: apiKey ? {
+                                    ...apiKey,
+                                    value: maskApiKey(apiKey.value)
+                                } : null
                             });
                         })
                         .catch(e => res.send({
