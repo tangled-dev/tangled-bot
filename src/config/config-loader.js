@@ -10,7 +10,8 @@ class _ConfigLoader {
     constructor() {
         this.reservedConfigNameList = new Set([
             'DATABASE_CONNECTION',
-            'EXCHANGE_CONFIG'
+            'EXCHANGE_CONFIG',
+            'NODE_BIND_IP'
         ]);
     }
 
